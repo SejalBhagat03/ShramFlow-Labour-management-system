@@ -1,0 +1,7 @@
+project_id = "wqeinecjrgopxofgtkqj"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.create-labour-user]
+verify_jwt = false

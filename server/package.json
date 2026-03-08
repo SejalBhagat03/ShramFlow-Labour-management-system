@@ -1,10 +1,10 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js",
+    "dev": "nodemon server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,10 +12,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
-    "mongoose": "^9.2.0"
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

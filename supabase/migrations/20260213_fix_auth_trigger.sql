@@ -31,12 +31,14 @@ BEGIN
     NEW.raw_user_meta_data ->> 'phone'
   );
 
-  -- Insert Default Role (labour) if not present
-  -- Supervisors are usually created manually or via specific admin functions, 
-  -- so default to 'labour' for self-signups to be safe.
-  INSERT INTO public.user_roles (user_id, role)
-  VALUES (NEW.id, 'labour')
-  ON CONFLICT (user_id, role) DO NOTHING;
+  -- Insert role based on metadata (default to labour if none provided)
+  DECLARE
+    desired_role text := COALESCE(NEW.raw_user_meta_data->>'role', 'labour');
+  BEGIN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, desired_role)
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END;
 
   RETURN NEW;
 END;

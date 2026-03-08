@@ -137,11 +137,31 @@ CREATE POLICY "Admins/Supervisors can view all roles" ON public.user_roles
 DROP POLICY IF EXISTS "Supervisors manage labourers" ON public.labourers;
 CREATE POLICY "Supervisors manage labourers" ON public.labourers
   FOR ALL USING (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'supervisor'));
+
+-- Labourers may view or update their own row (necessary for labour portal/trust score)
+DROP POLICY IF EXISTS "Labourers can manage own record" ON public.labourers;
+CREATE POLICY "Labourers can manage own record" ON public.labourers
+  FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
   
 -- WORK ENTRIES
 DROP POLICY IF EXISTS "Supervisors manage work" ON public.work_entries;
 CREATE POLICY "Supervisors manage work" ON public.work_entries
   FOR ALL USING (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'supervisor'));
+
+-- Labourers may operate on their own work entries (claiming, viewing, updating)
+DROP POLICY IF EXISTS "Labourers manage own work" ON public.work_entries;
+CREATE POLICY "Labourers manage own work" ON public.work_entries
+  FOR ALL USING (
+      labourer_id = (
+          SELECT id FROM public.labourers WHERE user_id = auth.uid()
+      )
+  )
+  WITH CHECK (
+      labourer_id = (
+          SELECT id FROM public.labourers WHERE user_id = auth.uid()
+      )
+  );
 
 -- LEDGER
 DROP POLICY IF EXISTS "Supervisors manage ledger" ON public.labour_ledger;
@@ -164,12 +184,14 @@ BEGIN
   INSERT INTO public.profiles (id, email, full_name)
   VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name');
 
-  -- 2. Assign Default Role (Supervisor for first user or logic based on metadata)
-  -- For now, default everyone to 'supervisor' if specific metadata key is present, otherwise 'labourer' or null
-  -- HEURISTIC: If it's the very first user, make them admin/supervisor? 
-  -- SIMPLER: Just make everyone a supervisor for this app's context based on user request "I am supervisor"
-  INSERT INTO public.user_roles (user_id, role)
-  VALUES (new.id, 'supervisor'); 
+  -- 2. Assign role based on metadata (defaults to 'labour')
+  DECLARE
+    desired_role text := COALESCE(new.raw_user_meta_data->>'role', 'labour');
+  BEGIN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (new.id, desired_role)
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END;
 
   RETURN new;
 END;

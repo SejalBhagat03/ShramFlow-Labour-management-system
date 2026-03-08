@@ -105,21 +105,27 @@ serve(async (req) => {
             user_metadata: {
                 full_name: fullName,
                 phone: phone || null,
+                role: 'labour' // hint to trigger
             },
         });
 
         if (createError) {
             console.error("Error creating user:", createError);
+            // `createError` comes from Supabase client which types it as ApiError | null
+            // but TS sometimes narrows it incorrectly; coerce to any for message access
+            const msg = (createError as any)?.message || "Failed to create user in Auth";
             return new Response(
-                JSON.stringify({ error: createError.message || "Failed to create user in Auth" }),
+                JSON.stringify({ error: msg }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        // Assign 'labour' role to the new user
+        // Assign 'labour' role to the new user (idempotent)
         const { error: roleInsertError } = await supabaseAdmin
             .from("user_roles")
-            .insert({ user_id: newUser.user.id, role: "labour" });
+            .insert({ user_id: newUser.user.id, role: "labour" })
+            .onConflict('user_id,role')
+            .ignore();
 
         if (roleInsertError) {
             console.error("Error assigning role:", roleInsertError);
@@ -134,14 +140,18 @@ serve(async (req) => {
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-    } catch (error) {
-        console.error("Create labour user error:", error);
+    } catch (err: unknown) {
+        // catch variable typed unknown to satisfy TS strictness
+        console.error("Create labour user error:", err);
 
         let errorMessage = "Failed to create labour account";
-        if (error instanceof Error) {
-            errorMessage = error.message;
-        } else if (typeof error === 'string') {
-            errorMessage = error;
+        if (err instanceof Error) {
+            errorMessage = err.message;
+        } else if (typeof err === 'string') {
+            errorMessage = err;
+        } else if (typeof err === 'object' && err !== null && 'message' in err) {
+            // fallback when error-like object contains message property
+            errorMessage = (err as any).message;
         }
 
         return new Response(

@@ -189,43 +189,44 @@ const DailyLogs = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
                 {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
+                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-6">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Site Journal</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Attendance Hub</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                                <CalendarDays className="h-8 w-8 text-primary" />
-                                {t("dailyLogs")}
-                            </h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
-                                {t("dailyLogsSubtitle")} • Keeping a digital record of site activity
-                            </p>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t('dailyLogs')}</h1>
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Record and track daily work and attendance</p>
                         </div>
-                        <Button className="h-11 px-6 rounded-xl gradient-primary shadow-glow font-bold" onClick={() => setIsAddModalOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            {t("addEntry")}
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <Button variant="outline" className="py-2.5 px-4 rounded-xl bg-background/50 backdrop-blur-sm border-2 w-full sm:w-auto text-sm h-auto">
+                                <FileText className="h-4 w-4 mr-2" />
+                                {t('reports')}
+                            </Button>
+                            <Button className="py-2.5 px-4 rounded-xl gradient-primary shadow-glow font-bold w-full sm:w-auto text-sm md:text-base h-auto" onClick={() => setIsAddModalOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                {t("addEntry")}
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
                 {/* Main Content Sections */}
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     {/* Date Navigation */}
-                    <div className="flex items-center justify-between bg-card rounded-2xl border p-4 shadow-sm">
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigateDate("prev")}>
-                            <ChevronLeft className="h-5 w-5" />
+                    <div className="flex items-center justify-between bg-card rounded-2xl border p-3 md:p-4 shadow-sm">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10 rounded-full" onClick={() => navigateDate("prev")}>
+                            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
                         </Button>
 
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="min-w-[220px] h-11 rounded-xl border-2 font-bold bg-background/50 backdrop-blur-sm">
-                                    <CalendarDays className="h-4 w-4 mr-2 text-primary" />
-                                    {format(selectedDate, "EEEE, dd MMM yyyy")}
+                                <Button variant="outline" className="min-w-[150px] md:min-w-[220px] h-10 md:h-11 rounded-xl border-2 font-bold bg-background/50 backdrop-blur-sm text-xs md:text-sm">
+                                    <CalendarDays className="h-3.5 w-3.5 mr-2 text-primary" />
+                                    {format(selectedDate, "dd MMM yyyy")}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-none" align="center">
@@ -311,7 +312,7 @@ const DailyLogs = () => {
                                                 </div>
                                                 {log.image_url && (
                                                     <div className="aspect-video relative overflow-hidden bg-muted rounded-md mb-2">
-                                                        <img src={log.image_url} alt={log.title} className="w-full h-full object-cover" />
+                                                        <img src={log.image_url} alt={log.title} className="w-full h-full object-cover" loading="lazy" />
                                                     </div>
                                                 )}
                                                 {log.description && (
@@ -341,21 +342,21 @@ const DailyLogs = () => {
 
                     {/* Add Entry Modal */}
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                        <DialogContent className="sm:max-w-lg">
-                            <DialogHeader>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
                                 <DialogTitle>{t("addDailyLog")}</DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription className="text-xs">
                                     {t("addDailyLogDesc")} {format(selectedDate, "dd MMM yyyy")}
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-4 py-4">
+                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
                                 {/* Image Upload */}
-                                <div className="space-y-2">
-                                    <Label>{t("photoOptional")}</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("photoOptional")}</Label>
                                     <div
                                         className={cn(
-                                            "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors",
+                                            "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors",
                                             "hover:border-primary hover:bg-primary/5",
                                             previewImage && "border-primary",
                                         )}
@@ -363,19 +364,19 @@ const DailyLogs = () => {
                                     >
                                         {isUploading ? (
                                             <div className="flex flex-col items-center gap-2">
-                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                                <p className="text-sm text-muted-foreground">{t("uploading")}</p>
+                                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                                <p className="text-xs text-muted-foreground">{t("uploading")}</p>
                                             </div>
                                         ) : previewImage ? (
                                             <div className="relative">
-                                                <img src={previewImage} alt="Preview" className="max-h-48 mx-auto rounded-lg object-cover" />
-                                                <p className="text-xs text-muted-foreground mt-2">{t("clickToChange")}</p>
+                                                <img src={previewImage} alt="Preview" className="max-h-32 mx-auto rounded-lg object-cover" />
+                                                <p className="text-[10px] text-muted-foreground mt-2">{t("clickToChange")}</p>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col items-center gap-2">
-                                                <Upload className="h-8 w-8 text-muted-foreground" />
-                                                <p className="text-sm text-muted-foreground">{t("clickToUpload")}</p>
-                                                <p className="text-xs text-muted-foreground">{t("photoTypes")}</p>
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <Upload className="h-6 w-6 text-muted-foreground" />
+                                                <p className="text-xs text-muted-foreground font-medium">{t("clickToUpload")}</p>
+                                                <p className="text-[10px] text-muted-foreground">{t("photoTypes")}</p>
                                             </div>
                                         )}
                                     </div>
@@ -389,13 +390,13 @@ const DailyLogs = () => {
                                 </div>
 
                                 {/* Log Type */}
-                                <div className="space-y-2">
-                                    <Label>{t("type")}</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("type")}</Label>
                                     <Select
                                         value={formData.log_type}
                                         onValueChange={(value) => setFormData({ ...formData, log_type: value })}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-9 text-sm">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -412,32 +413,34 @@ const DailyLogs = () => {
                                 </div>
 
                                 {/* Title */}
-                                <div className="space-y-2">
-                                    <Label>{t("title")} *</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("title")} *</Label>
                                     <Input
                                         placeholder={t("titlePlaceholder")}
                                         value={formData.title}
                                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        className="h-9 text-sm font-semibold"
                                     />
                                 </div>
 
                                 {/* Description */}
-                                <div className="space-y-2">
-                                    <Label>{t("notesOptional")}</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("notesOptional")}</Label>
                                     <Textarea
                                         placeholder={t("notesPlaceholder")}
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        rows={3}
+                                        className="min-h-[80px] text-sm resize-none"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-3">
-                                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
+                                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)}>
                                     {t("cancel")}
                                 </Button>
                                 <Button
+                                    size="sm"
                                     className="gradient-primary"
                                     onClick={handleSave}
                                     disabled={!formData.title || createLog.isPending || isUploading}

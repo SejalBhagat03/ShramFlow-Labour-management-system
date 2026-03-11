@@ -36,97 +36,96 @@ const Settings = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Workspace Preferences</span>
-                            </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                                <User className="h-8 w-8 text-primary" />
-                                {t("settings")}
-                            </h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
-                                Manage your account, security, and application preferences
-                            </p>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Workspace Preferences</span>
                         </div>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+                            {t("settings")}
+                        </h1>
+                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
+                            Manage your account, security, and application preferences
+                        </p>
                     </div>
                 </div>
 
                 {/* Main Content Sections */}
-                <div className="space-y-6 max-w-4xl">
+                <div className="space-y-4 md:space-y-6 max-w-4xl">
 
                     {/* Profile Card */}
-                    <div className="bg-card rounded-xl border p-6 shadow-card space-y-6">
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                            <User className="h-5 w-5 text-primary" />
+                    <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm space-y-4 md:space-y-6">
+                        <div className="flex items-center gap-2 text-sm md:text-lg font-semibold border-b pb-3 -mx-4 px-4 md:-mx-6 md:px-6">
+                            <User className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                             {t("profile")}
                         </div>
 
                         {/* User Avatar and Meta Info */}
                         <div className="flex items-center gap-4">
                             <div className="relative">
-                                <Avatar className="h-20 w-20 border-2 border-primary/20">
-                                    <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                                <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-primary/20 shadow-sm">
+                                    <AvatarFallback className="bg-primary/10 text-primary text-lg md:text-xl font-bold">
                                         {user?.name
                                             ?.split(" ")
                                             .map((n) => n[0])
                                             .join("")}
                                     </AvatarFallback>
                                 </Avatar>
-                                <Button size="icon" variant="outline" className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full">
-                                    <Camera className="h-4 w-4" />
+                                <Button size="icon" variant="outline" className="absolute -bottom-1 -right-1 h-7 w-7 md:h-8 md:w-8 rounded-full bg-background shadow-sm hover:bg-muted transition-colors">
+                                    <Camera className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                 </Button>
                             </div>
                             <div>
-                                <h3 className="font-semibold text-foreground">{user?.name}</h3>
-                                <p className="text-sm text-muted-foreground capitalize">{user?.role}</p>
+                                <h3 className="font-semibold text-foreground text-sm md:text-base">{user?.name}</h3>
+                                <p className="text-xs text-muted-foreground capitalize flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                                    {user?.role}
+                                </p>
                             </div>
                         </div>
 
                         {/* Profile Form Inputs */}
-                        <div className="grid gap-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>First Name</Label>
-                                    <Input defaultValue="Rajesh" />
+                        <div className="grid gap-3 md:gap-4">
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">First Name</Label>
+                                    <Input defaultValue="Rajesh" className="h-9 text-xs md:text-sm" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Last Name</Label>
-                                    <Input defaultValue="Supervisor" />
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">Last Name</Label>
+                                    <Input defaultValue="Supervisor" className="h-9 text-xs md:text-sm" />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Phone Number</Label>
-                                <Input defaultValue="+91 98765 00000" />
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">Phone Number</Label>
+                                <Input defaultValue="+91 98765 00000" className="h-9 text-xs md:text-sm" />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Email</Label>
-                                <Input type="email" defaultValue="rajesh@example.com" />
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">Email</Label>
+                                <Input type="email" defaultValue="rajesh@example.com" className="h-9 text-xs md:text-sm" />
                             </div>
                         </div>
                     </div>
 
                     {/* Language Preferences Card */}
-                    <div className="bg-card rounded-xl border p-6 shadow-card space-y-4">
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                            <Globe className="h-5 w-5 text-primary" />
+                    <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 text-sm md:text-lg font-semibold border-b pb-3 -mx-4 px-4 md:-mx-6 md:px-6">
+                            <Globe className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                             {t("language")}
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-4">
                             <div>
-                                <p className="font-medium text-foreground">App Language</p>
-                                <p className="text-sm text-muted-foreground">Choose your preferred language</p>
+                                <p className="font-semibold text-foreground text-xs md:text-sm">App Language</p>
+                                <p className="text-[10px] md:text-xs text-muted-foreground">Choose your preferred language</p>
                             </div>
                             <Select value={lang} onValueChange={(value) => setLang(value)}>
-                                <SelectTrigger className="w-40">
+                                <SelectTrigger className="w-32 md:w-40 h-9 text-xs md:text-sm">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="rounded-xl shadow-xl">
                                     <SelectItem value="en">English</SelectItem>
                                     <SelectItem value="hi">हिंदी (Hindi)</SelectItem>
                                 </SelectContent>
@@ -135,84 +134,84 @@ const Settings = () => {
                     </div>
 
                     {/* Notification Settings Card */}
-                    <div className="bg-card rounded-xl border p-6 shadow-card space-y-4">
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                            <Bell className="h-5 w-5 text-primary" />
+                    <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 text-sm md:text-lg font-semibold border-b pb-3 -mx-4 px-4 md:-mx-6 md:px-6">
+                            <Bell className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                             {t("notifications")}
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 md:space-y-5">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-foreground">Push Notifications</p>
-                                    <p className="text-sm text-muted-foreground">Receive alerts on your device</p>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Push Notifications</p>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground">Receive alerts on your device</p>
                                 </div>
-                                <Switch defaultChecked />
+                                <Switch defaultChecked className="scale-75 md:scale-100" />
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-foreground">Flagged Entry Alerts</p>
-                                    <p className="text-sm text-muted-foreground">Get notified when entries are flagged</p>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Flagged Entry Alerts</p>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground">Get notified when entries are flagged</p>
                                 </div>
-                                <Switch defaultChecked />
+                                <Switch defaultChecked className="scale-75 md:scale-100" />
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-foreground">Payment Reminders</p>
-                                    <p className="text-sm text-muted-foreground">Remind about pending payments</p>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Payment Reminders</p>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground">Remind about pending payments</p>
                                 </div>
-                                <Switch defaultChecked />
+                                <Switch defaultChecked className="scale-75 md:scale-100" />
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-foreground">Daily Summary</p>
-                                    <p className="text-sm text-muted-foreground">Receive daily work summary</p>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Daily Summary</p>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground">Receive daily work summary</p>
                                 </div>
-                                <Switch />
+                                <Switch className="scale-75 md:scale-100" />
                             </div>
                         </div>
                     </div>
 
                     {/* Fraud Detection/Threshold Card (Supervisor Specific) */}
-                    <div className="bg-card rounded-xl border p-6 shadow-card space-y-4">
-                        <div className="flex items-center gap-2 text-lg font-semibold">
-                            <Shield className="h-5 w-5 text-primary" />
+                    <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm space-y-4 md:space-y-6">
+                        <div className="flex items-center gap-2 text-sm md:text-lg font-semibold border-b pb-3 -mx-4 px-4 md:-mx-6 md:px-6">
+                            <Shield className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                             {t("fraudThreshold")}
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="space-y-3">
+                        <div className="space-y-5 md:space-y-6">
+                            <div className="space-y-2 md:space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="font-medium text-foreground">Maximum Meters per Day</p>
-                                    <span className="text-sm text-muted-foreground">100m</span>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Maximum Meters per Day</p>
+                                    <span className="text-xs font-bold text-primary">100m</span>
                                 </div>
-                                <Slider defaultValue={[100]} max={200} step={10} />
-                                <p className="text-xs text-muted-foreground">Flag entries where meters exceed this threshold</p>
+                                <Slider defaultValue={[100]} max={200} step={10} className="py-2" />
+                                <p className="text-[10px] md:text-xs text-muted-foreground">Flag entries where meters exceed this threshold</p>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2 md:space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="font-medium text-foreground">Maximum Hours per Day</p>
-                                    <span className="text-sm text-muted-foreground">12h</span>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Maximum Hours per Day</p>
+                                    <span className="text-xs font-bold text-primary">12h</span>
                                 </div>
-                                <Slider defaultValue={[12]} max={24} step={1} />
-                                <p className="text-xs text-muted-foreground">Flag entries where hours exceed this threshold</p>
+                                <Slider defaultValue={[12]} max={24} step={1} className="py-2" />
+                                <p className="text-[10px] md:text-xs text-muted-foreground">Flag entries where hours exceed this threshold</p>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2 md:space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="font-medium text-foreground">Deviation Sensitivity</p>
-                                    <span className="text-sm text-muted-foreground">Medium</span>
+                                    <p className="font-semibold text-foreground text-xs md:text-sm">Deviation Sensitivity</p>
+                                    <span className="text-xs font-bold text-primary">Medium</span>
                                 </div>
-                                <Slider defaultValue={[50]} max={100} step={10} />
-                                <p className="text-xs text-muted-foreground">Higher sensitivity flags more entries for review</p>
+                                <Slider defaultValue={[50]} max={100} step={10} className="py-2" />
+                                <p className="text-[10px] md:text-xs text-muted-foreground">Higher sensitivity flags more entries for review</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Global Save Button */}
-                    <Button className="w-full gradient-primary shadow-glow" onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
+                    <Button className="w-full h-11 md:h-12 gradient-primary shadow-glow font-bold text-sm md:text-base rounded-xl" onClick={handleSave}>
+                        <Save className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                         Save Changes
                     </Button>
                 </div>

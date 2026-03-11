@@ -223,23 +223,26 @@ const GroupWorkEntry = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-4xl mx-auto space-y-6 pb-20">
-                {/* Header */}
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div className="flex-1">
-                        <h1 className="text-2xl font-bold">{t('groupWorkEntry')}</h1>
-                        <p className="text-muted-foreground">
-                            {step === 1 ? 'Step 1: Setup group and select labourers' : 'Step 2: Finalize work meters after completion'}
-                        </p>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigate(-1)}>
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                            <div>
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t('groupWorkEntry')}</h1>
+                                <p className="text-muted-foreground mt-1 text-xs sm:text-sm font-medium">
+                                    {step === 1 ? 'Step 1: Setup group and select labourers' : 'Step 2: Finalize work meters after completion'}
+                                </p>
+                            </div>
+                        </div>
+                        {step === 2 && (
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 w-fit">
+                                Group Created
+                            </Badge>
+                        )}
                     </div>
-                    {step === 2 && (
-                        <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                            Group Created
-                        </Badge>
-                    )}
                 </div>
 
                 {step === 1 ? (
@@ -364,7 +367,7 @@ const GroupWorkEntry = () => {
                         {/* Summary Card */}
                         <Card className="shadow-card border-2 border-primary/20">
                             <CardContent className="pt-6">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div className="grid gap-3 md:gap-6 grid-cols-2 md:grid-cols-4 text-center">
                                     <div>
                                         <p className="text-sm text-muted-foreground">Date</p>
                                         <p className="font-bold">{new Date(date).toLocaleDateString()}</p>
@@ -425,24 +428,25 @@ const GroupWorkEntry = () => {
 
                         {/* Work Distribution */}
                         <Card className="shadow-card border-2 border-primary/20">
-                            <CardHeader className="bg-primary/5">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2">
+                            <CardHeader className="bg-primary/5 p-4 md:p-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                         <Edit className="h-5 w-5 text-primary" />
-                                        Assign Actual Work Done ({selectedLabours.length} labourers)
+                                        <span>{t('assignWorkDone')} ({selectedLabours.length})</span>
                                     </CardTitle>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={handleAddMoreLabour}
+                                            className="w-full sm:w-auto h-9 text-xs"
                                         >
                                             <UserPlus className="h-4 w-4 mr-2" />
-                                            Add More Labour
+                                            {t('addMoreLabour')}
                                         </Button>
-                                        <div className={`text-right ${isOverLimit ? 'text-destructive' : 'text-primary'}`}>
-                                            <p className="text-sm font-normal text-muted-foreground">{t('remainingMeters')}</p>
-                                            <p className="text-2xl font-black">{remainingMeters}m</p>
+                                        <div className={`flex items-center gap-3 px-3 py-1.5 rounded-lg bg-background border ${isOverLimit ? 'text-destructive border-destructive/20' : 'text-primary border-primary/20'} w-full sm:w-auto justify-between`}>
+                                            <span className="text-xs font-medium text-muted-foreground">{t('remaining')}</span>
+                                            <span className="text-lg font-black">{remainingMeters}m</span>
                                         </div>
                                     </div>
                                 </div>
@@ -464,91 +468,106 @@ const GroupWorkEntry = () => {
                                     </AlertDescription>
                                 </Alert>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {selectedLabours.map(id => {
                                         const labour = labourers.find(l => l.id === id);
                                         return (
-                                            <div key={id} className="grid grid-cols-2 items-center gap-4 p-4 rounded-xl bg-accent/30 border">
-                                                <div className="flex-1">
-                                                    <p className="font-bold text-lg leading-none mb-1">{labour?.name}</p>
-                                                    <p className="text-xs text-muted-foreground">Actual meters completed</p>
+                                            <div key={id} className="flex flex-col lg:flex-row lg:items-center gap-4 p-4 md:p-5 rounded-xl bg-accent/30 border transition-all hover:border-primary/30">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between lg:block mb-1">
+                                                        <p className="font-bold text-base md:text-lg truncate">{labour?.name}</p>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="lg:hidden text-destructive hover:bg-destructive/10 h-8 w-8"
+                                                            onClick={() => toggleLabour(id)}
+                                                        >
+                                                            ✕
+                                                        </Button>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground hidden lg:block">Actual meters completed</p>
                                                 </div>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[10px] uppercase text-muted-foreground px-1">Rate (₹/m)</Label>
+                                                
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
+                                                    <div className="space-y-1.5">
+                                                        <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 px-1">{t('rate')} (₹/m)</Label>
                                                         <Input
                                                             type="number"
                                                             placeholder="0"
-                                                            className="w-20 h-10 text-center font-bold border-primary/30"
+                                                            className="w-full lg:w-24 h-9 text-center font-bold border-primary/20 bg-background text-sm"
                                                             value={tempRates[id] || ''}
                                                             onChange={(e) => handleRateChange(id, e.target.value)}
                                                         />
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[10px] uppercase text-muted-foreground px-1">Meters (m)</Label>
+                                                    <div className="space-y-1.5 flex-1">
+                                                        <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 px-1">{t('meters')} (m)</Label>
                                                         <div className="relative">
                                                             <Input
                                                                 type="number"
                                                                 placeholder="Auto"
-                                                                className="w-32 h-10 text-right pr-6 font-bold"
+                                                                className="w-full lg:w-32 h-9 text-right pr-7 font-bold text-sm bg-background"
                                                                 value={labourMeters[id] || ''}
                                                                 onChange={(e) => handleMeterChange(id, e.target.value)}
                                                             />
                                                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">m</span>
                                                         </div>
                                                     </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-destructive hover:bg-destructive/10 h-10 w-10 mt-5"
-                                                        onClick={() => toggleLabour(id)}
-                                                    >
-                                                        ✕
-                                                    </Button>
+                                                    <div className="hidden lg:flex items-end pb-0.5">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-destructive hover:bg-destructive/10 h-9 w-9"
+                                                            onClick={() => toggleLabour(id)}
+                                                        >
+                                                            ✕
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
 
-                                <div className="pt-6 border-t flex flex-col sm:flex-row gap-4 items-center justify-between bg-accent/10 -mx-6 -mb-6 p-6">
-                                    <div className="text-center sm:text-left">
-                                        <p className="text-muted-foreground">{t('totalAmount')}</p>
-                                        <p className="text-3xl font-black text-foreground">
-                                            ₹{(() => {
-                                                // Calculate total projected amount
-                                                let total = 0;
-                                                const hasManualMeters = sumIndividualMeters > 0;
+                                <div className="pt-6 border-t flex flex-col md:flex-row gap-6 items-center justify-between bg-accent/10 -mx-4 md:-mx-6 -mb-6 p-4 md:p-6 mt-4">
+                                    <div className="text-center md:text-left w-full md:w-auto">
+                                        <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1">{t('totalAmount')}</p>
+                                        <div className="flex flex-col gap-0.5">
+                                            <p className="text-3xl md:text-4xl font-black text-foreground">
+                                                ₹{(() => {
+                                                    // Calculate total projected amount
+                                                    let total = 0;
+                                                    const hasManualMeters = sumIndividualMeters > 0;
 
-                                                if (hasManualMeters) {
-                                                    // Sum of (manual meters * rate)
-                                                    selectedLabours.forEach(id => {
-                                                        const m = labourMeters[id] || 0;
-                                                        const r = tempRates[id] || 0;
-                                                        total += m * r;
-                                                    });
-                                                } else {
-                                                    // Auto-split: (Total Area / N) * Rate for each
-                                                    const perLabour = totalArea / selectedLabours.length;
-                                                    selectedLabours.forEach(id => {
-                                                        const r = tempRates[id] || 0;
-                                                        total += perLabour * r;
-                                                    });
-                                                }
-                                                return total.toLocaleString();
-                                            })()}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                            {sumIndividualMeters > 0 ? `${sumIndividualMeters}m assigned` : `${totalArea}m to be auto-divided`}
-                                        </p>
+                                                    if (hasManualMeters) {
+                                                        // Sum of (manual meters * rate)
+                                                        selectedLabours.forEach(id => {
+                                                            const m = labourMeters[id] || 0;
+                                                            const r = tempRates[id] || 0;
+                                                            total += m * r;
+                                                        });
+                                                    } else {
+                                                        // Auto-split: (Total Area / N) * Rate for each
+                                                        const perLabour = totalArea / selectedLabours.length;
+                                                        selectedLabours.forEach(id => {
+                                                            const r = tempRates[id] || 0;
+                                                            total += perLabour * r;
+                                                        });
+                                                    }
+                                                    return total.toLocaleString();
+                                                })()}
+                                            </p>
+                                            <Badge variant="outline" className="w-fit mx-auto md:mx-0 bg-primary/5 text-primary border-primary/20 text-[10px] font-bold py-0 h-5">
+                                                {sumIndividualMeters > 0 ? `${sumIndividualMeters}m ${t('assigned')}` : `${totalArea}m ${t('autoDivide')}`}
+                                            </Badge>
+                                        </div>
                                     </div>
                                     <Button
-                                        className="w-full sm:w-auto h-16 px-10 text-xl font-bold gradient-primary shadow-glow flex gap-2"
+                                        className="w-full md:w-auto h-14 md:h-16 px-8 text-lg font-bold gradient-primary shadow-glow flex gap-3"
                                         onClick={handleSaveWork}
                                         disabled={isOverLimit || selectedLabours.length === 0}
                                     >
-                                        <Save className="h-6 w-6" />
-                                        Save Final Work Entry
+                                        <Save className="h-5 w-5 md:h-6 md:w-6" />
+                                        {t('saveFinalEntry')}
                                     </Button>
                                 </div>
                             </CardContent>

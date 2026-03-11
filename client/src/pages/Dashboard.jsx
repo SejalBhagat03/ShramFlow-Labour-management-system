@@ -110,21 +110,21 @@ const Dashboard = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-8">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
                 {/* Page Header with gradient background */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl">
                     <div className="relative">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
-                            <span className="text-sm font-medium text-muted-foreground">Live Dashboard</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-soft" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Live Dashboard</span>
                         </div>
-                        <h1 className="text-3xl lg:text-4xl font-bold text-foreground tracking-tight">{t('dashboard')}</h1>
-                        <p className="text-muted-foreground mt-2 text-lg">Welcome back! Here's your workforce overview.</p>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground tracking-tight">{t('dashboard')}</h1>
+                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base">Welcome back! Here's your workforce overview.</p>
                     </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     {statsLoading ? (
                         Array.from({ length: 4 }).map((_, i) => (
                             <div key={i} className="h-32 rounded-2xl bg-card animate-pulse border" />
@@ -146,18 +146,21 @@ const Dashboard = () => {
                 {/* Main Content Grid */}
                 <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
                     {/* Quick Actions */}
-                    <div className="lg:col-span-1 space-y-6">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-bold text-foreground">{t('quickActions')}</h3>
-                            <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+                    <div className="lg:col-span-1 space-y-4 md:space-y-6">
+                        <div className="space-y-1 flex flex-col">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-bold">Quick Actions</span>
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-sm md:text-base font-semibold text-foreground">{t('quickActions')}</h3>
+                                <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+                            </div>
                         </div>
                         <QuickActionsGrid actions={quickActions} />
 
                         {/* Today's Summary */}
-                        <div className="bg-card rounded-2xl border p-5 shadow-card space-y-4 hover-lift">
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-card space-y-3 hover-lift">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-semibold text-foreground">Today's Progress</h4>
-                                <div className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
+                                <h4 className="text-sm md:text-base font-semibold text-foreground">Today's Progress</h4>
+                                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-soft" />
                             </div>
                             {statsLoading ? (
                                 <div className="space-y-3">
@@ -167,17 +170,17 @@ const Dashboard = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    <div className="flex justify-between items-center text-sm p-3 rounded-xl bg-primary/5">
+                                    <div className="flex justify-between items-center text-xs md:text-sm p-3 rounded-xl bg-primary/5">
                                         <span className="text-muted-foreground font-medium">Approved Meters</span>
-                                        <span className="font-bold text-primary text-lg">{stats.totalMetersToday}m</span>
+                                        <span className="font-bold text-primary text-base md:text-lg">{stats.totalMetersToday}m</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-sm p-3 rounded-xl bg-success/5">
+                                    <div className="flex justify-between items-center text-xs md:text-sm p-3 rounded-xl bg-success/5">
                                         <span className="text-muted-foreground font-medium">Approved Hours</span>
-                                        <span className="font-bold text-success text-lg">{stats.totalHoursToday}h</span>
+                                        <span className="font-bold text-success text-base md:text-lg">{stats.totalHoursToday}h</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-sm p-3 rounded-xl bg-warning/5">
+                                    <div className="flex justify-between items-center text-xs md:text-sm p-3 rounded-xl bg-warning/5">
                                         <span className="text-muted-foreground font-medium">Waiting Approval</span>
-                                        <span className="font-bold text-warning text-lg">{stats.pendingApprovals}</span>
+                                        <span className="font-bold text-warning text-base md:text-lg">{stats.pendingApprovals}</span>
                                     </div>
                                 </div>
                             )}
@@ -185,7 +188,14 @@ const Dashboard = () => {
                     </div>
 
                     {/* Activity Feed */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 space-y-4">
+                        <div className="space-y-1 flex flex-col">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-bold">Recent Activity</span>
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-sm md:text-base font-semibold text-foreground">{t('activityFeed')}</h3>
+                                <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+                            </div>
+                        </div>
                         {activitiesLoading ? (
                             <div className="space-y-4">
                                 <div className="h-6 w-32 bg-muted rounded animate-pulse" />

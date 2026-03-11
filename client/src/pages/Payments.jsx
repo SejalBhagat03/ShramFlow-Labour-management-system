@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/AppLayout";
 import { usePayments } from "@/hooks/usePayments";
@@ -113,12 +113,14 @@ const Payments = () => {
         handleSaveSuccess();
     };
 
-    const filteredPayments = payments.filter((payment) => {
-        const labourerName = payment.labourer?.name || "";
-        const matchesSearch = labourerName.toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
+    const filteredPayments = useMemo(() => {
+        return payments.filter((payment) => {
+            const labourerName = payment.labourer?.name || "";
+            const matchesSearch = labourerName.toLowerCase().includes(search.toLowerCase());
+            const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [payments, search, statusFilter]);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return "";
@@ -187,27 +189,27 @@ const Payments = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
                 {/* Immersive Page Header (Matches Dashboard structure) */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
+                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-6">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Financial Hub</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Financial Hub</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">{t("payments")}</h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
-                                {filteredPayments.length} transactions recorded • Track wages & advances
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("payments")}</h1>
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
+                                {filteredPayments.length} transactions recorded • Wages & advances
                             </p>
                         </div>
-                        <div className="flex gap-3">
-                            <Button variant="outline" size="sm" onClick={handleExportCSV} className="h-11 px-5 rounded-xl bg-background/50 backdrop-blur-sm border-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <Button variant="outline" size="sm" onClick={handleExportCSV} className="py-2.5 px-4 rounded-xl bg-background/50 backdrop-blur-sm border-2 w-full sm:w-auto text-sm h-auto">
                                 <Download className="h-4 w-4 mr-2" />
                                 {t("exportCSV")}
                             </Button>
                             {user.role === 'supervisor' && (
-                                <Button size="sm" className="h-11 px-5 rounded-xl gradient-primary shadow-glow font-bold" onClick={() => setIsAddModalOpen(true)}>
+                                <Button size="sm" className="py-2.5 px-4 rounded-xl gradient-primary shadow-glow font-bold w-full sm:w-auto text-sm h-auto" onClick={() => setIsAddModalOpen(true)}>
                                     <CreditCard className="h-4 w-4 mr-2" />
                                     {t("createPayment")}
                                 </Button>
@@ -217,48 +219,48 @@ const Payments = () => {
                 </div>
 
                 {/* Main Content Sections (Inherit AppLayout's padding and max-w) */}
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift group">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift group">
+                            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70 mb-2 flex items-center gap-2">
                                 <CheckCircle className="h-3 w-3 text-green-500" />
                                 Total Paid
                             </p>
-                            <p className="text-3xl font-black text-green-600 tracking-tight">₹{totalPaid.toLocaleString()}</p>
+                            <p className="text-xl md:text-2xl font-bold text-green-600 tracking-tight">₹{totalPaid.toLocaleString()}</p>
                         </div>
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift group">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift group">
+                            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70 mb-2 flex items-center gap-2">
                                 <Clock className="h-3 w-3 text-amber-500" />
                                 Pending
                             </p>
-                            <p className="text-3xl font-black text-amber-500 tracking-tight">₹{totalPending.toLocaleString()}</p>
+                            <p className="text-xl md:text-2xl font-bold text-amber-500 tracking-tight">₹{totalPending.toLocaleString()}</p>
                         </div>
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Total Volume</p>
-                            <p className="text-3xl font-black text-foreground tracking-tight">₹{(totalPaid + totalPending).toLocaleString()}</p>
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
+                            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70 mb-2">Total Volume</p>
+                            <p className="text-xl md:text-2xl font-bold text-foreground tracking-tight">₹{(totalPaid + totalPending).toLocaleString()}</p>
                         </div>
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Transactions</p>
-                            <p className="text-3xl font-black text-foreground tracking-tight">{payments.length}</p>
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
+                            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70 mb-2">Transactions</p>
+                            <p className="text-xl md:text-2xl font-bold text-foreground tracking-tight">{payments.length}</p>
                         </div>
                     </div>
 
                     {/* Filters Section */}
-                    <div className="flex flex-col sm:flex-row gap-4 bg-card p-5 rounded-2xl border shadow-sm">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-6 bg-card p-4 md:p-6 rounded-2xl border shadow-sm">
                         <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder={`${t("search")} by name...`}
-                                className="pl-11 h-12 bg-muted/40 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl"
+                                placeholder="Search by labourer name..."
+                                className="pl-10 py-2 px-3 h-10 md:h-11 bg-muted/40 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl text-sm"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full sm:w-52 h-12 bg-muted/40 border-none rounded-xl px-4">
+                            <SelectTrigger className="w-full sm:w-44 h-10 md:h-11 bg-muted/40 border-none rounded-xl px-3 md:px-4 text-xs md:text-sm">
                                 <div className="flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-muted-foreground" />
+                                    <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                                     <SelectValue placeholder={t("status")} />
                                 </div>
                             </SelectTrigger>
@@ -389,29 +391,30 @@ const Payments = () => {
 
                 {/* Create Payment Modal */}
                 <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                    <DialogContent className="sm:max-w-md rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-                        <div className="bg-primary p-6 text-primary-foreground">
-                            <DialogTitle className="text-2xl font-bold">{t("createPayment")}</DialogTitle>
-                            <DialogDescription className="text-primary-foreground/80 font-medium">Initiate a new wage or advance payment</DialogDescription>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="space-y-3">
-                                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Select Labourer</Label>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
+                            <DialogTitle>{t("createPayment")}</DialogTitle>
+                            <DialogDescription className="text-xs">Initiate a new wage or advance payment</DialogDescription>
+                        </DialogHeader>
+
+                        <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Select Labourer</Label>
                                 <Select
                                     value={formData.labourer_id}
                                     onValueChange={(value) => setFormData({ ...formData, labourer_id: value })}
                                 >
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none shadow-inner">
+                                    <SelectTrigger className="h-9 text-sm">
                                         <SelectValue placeholder="Choose labourer" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl shadow-xl">
+                                    <SelectContent>
                                         {labourers
                                             .filter((l) => l.status === "active")
                                             .map((labour) => (
-                                                <SelectItem key={labour.id} value={labour.id} className="rounded-lg py-3 cursor-pointer">
+                                                <SelectItem key={labour.id} value={labour.id}>
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold">{labour.name}</span>
-                                                        <span className="text-xs text-muted-foreground">₹{labour.daily_rate}/day</span>
+                                                        <span className="font-semibold">{labour.name}</span>
+                                                        <span className="text-[10px] text-muted-foreground">₹{labour.daily_rate}/day</span>
                                                     </div>
                                                 </SelectItem>
                                             ))}
@@ -420,118 +423,131 @@ const Payments = () => {
                                 {formData.labourer_id && <LabourBalanceDisplay labourId={formData.labourer_id} />}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-3">
-                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("amount")} (₹)</Label>
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("amount")} (₹)</Label>
                                     <Input
                                         type="number"
                                         placeholder="0"
                                         value={formData.amount}
-                                        className="h-12 rounded-xl bg-muted/30 border-none shadow-inner text-lg font-bold"
+                                        className="h-9 text-sm font-semibold"
                                         onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("method")}</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("method")}</Label>
                                     <Select value={formData.method} onValueChange={(value) => setFormData({ ...formData, method: value })}>
-                                        <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none shadow-inner">
+                                        <SelectTrigger className="h-9 text-sm">
                                             <SelectValue placeholder="Select" />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl">
-                                            <SelectItem value="cash" className="rounded-lg py-2.5">Cash</SelectItem>
-                                            <SelectItem value="manual_upi" className="rounded-lg py-2.5">UPI Manual</SelectItem>
-                                            <SelectItem value="bank" className="rounded-lg py-2.5">Bank</SelectItem>
-                                            <SelectItem value="razorpay" className="rounded-lg py-2.5 font-bold text-primary">Razorpay</SelectItem>
+                                        <SelectContent>
+                                            <SelectItem value="cash">Cash</SelectItem>
+                                            <SelectItem value="manual_upi">UPI Manual</SelectItem>
+                                            <SelectItem value="bank">Bank</SelectItem>
+                                            <SelectItem value="razorpay" className="font-bold text-primary">Razorpay</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Date</Label>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Date</Label>
                                 <Input
                                     type="date"
                                     value={formData.transaction_date}
-                                    className="h-12 rounded-xl bg-muted/30 border-none shadow-inner"
+                                    className="h-9 text-sm"
                                     onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
                                 />
                             </div>
+                        </div>
 
-                            <div className="flex gap-3 pt-4">
-                                <Button variant="ghost" className="flex-1 h-12 rounded-xl font-bold" onClick={() => setIsAddModalOpen(false)}>
-                                    {t("cancel")}
+                        <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex gap-3 z-10">
+                            <Button variant="outline" size="sm" className="flex-1" onClick={() => setIsAddModalOpen(false)}>
+                                {t("cancel")}
+                            </Button>
+                            {formData.method === "razorpay" ? (
+                                <PaymentButton
+                                    amount={Number(formData.amount)}
+                                    labourerId={formData.labourer_id}
+                                    supervisorId={user?.id}
+                                    labourerName={labourers.find(l => l.id === formData.labourer_id)?.name}
+                                    onBeforeOpen={() => setIsAddModalOpen(false)}
+                                    onSuccess={handleSaveSuccess}
+                                    className="flex-[1.5] h-9 text-sm"
+                                />
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="flex-[1.5] gradient-primary"
+                                    onClick={handleManualSave}
+                                    disabled={!formData.labourer_id || !formData.amount || createManualPayment.isPending}
+                                >
+                                    {createManualPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("save")}
                                 </Button>
-                                {formData.method === "razorpay" ? (
-                                    <PaymentButton
-                                        amount={Number(formData.amount)}
-                                        labourerId={formData.labourer_id}
-                                        supervisorId={user?.id}
-                                        labourerName={labourers.find(l => l.id === formData.labourer_id)?.name}
-                                        onBeforeOpen={() => setIsAddModalOpen(false)}
-                                        onSuccess={handleSaveSuccess}
-                                        className="flex-[1.5] h-12 rounded-xl font-bold shadow-lg"
-                                    />
-                                ) : (
-                                    <Button
-                                        className="flex-[1.5] h-12 rounded-xl font-bold gradient-primary shadow-glow"
-                                        onClick={handleManualSave}
-                                        disabled={!formData.labourer_id || !formData.amount || createManualPayment.isPending}
-                                    >
-                                        {createManualPayment.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : t("save")}
-                                    </Button>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Detailed View Modal */}
                 <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-                    <DialogContent className="sm:max-w-md rounded-3xl p-0 overflow-hidden shadow-2xl">
-                        <div className="bg-slate-900 p-8 text-white text-center">
-                            <p className="text-slate-400 text-sm font-medium uppercase tracking-[0.2em] mb-2">Transaction Details</p>
-                            <h2 className="text-4xl font-black mb-2">₹{Number(selectedPayment?.amount).toLocaleString()}</h2>
-                            <Badge className={cn(
-                                "rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest",
-                                selectedPayment?.status === 'paid' ? "bg-green-500 text-white" : "bg-amber-500 text-white"
-                            )}>
-                                {selectedPayment?.status}
-                            </Badge>
-                        </div>
-                        <div className="p-8 space-y-6">
-                            <div className="grid grid-cols-2 gap-y-6 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Labourer</p>
-                                    <p className="font-bold text-foreground">{selectedPayment?.labourer?.name}</p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Date</p>
-                                    <p className="font-bold text-foreground">{formatDate(selectedPayment?.transaction_date)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Method</p>
-                                    <p className="font-bold text-foreground capitalize">{selectedPayment?.method.replace('_', ' ')}</p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Transaction ID</p>
-                                    <p className="font-mono text-[11px] text-foreground truncate max-w-[120px]" title={selectedPayment?.id}>
-                                        {selectedPayment?.id.slice(0, 8)}...
-                                    </p>
-                                </div>
-                                {selectedPayment?.razorpay_order_id && (
-                                    <div className="col-span-2">
-                                        <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Razorpay Order ID</p>
-                                        <p className="font-mono text-xs text-foreground bg-muted p-2 rounded-lg">{selectedPayment.razorpay_order_id}</p>
-                                    </div>
-                                )}
-                                {selectedPayment?.razorpay_payment_id && (
-                                    <div className="col-span-2">
-                                        <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Razorpay Payment ID</p>
-                                        <p className="font-mono text-xs text-foreground bg-muted p-2 rounded-lg">{selectedPayment.razorpay_payment_id}</p>
-                                    </div>
-                                )}
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
+                            <DialogTitle className="text-lg">Transaction Receipt</DialogTitle>
+                            <DialogDescription className="text-xs">Digital payment record</DialogDescription>
+                        </DialogHeader>
+
+                        <div className="overflow-y-auto max-h-[60vh]">
+                            <div className="bg-slate-900 p-6 md:p-8 text-white text-center">
+                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Amount</p>
+                                <h2 className="text-3xl md:text-4xl font-black mb-3 text-white">₹{Number(selectedPayment?.amount).toLocaleString()}</h2>
+                                <Badge className={cn(
+                                    "rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest",
+                                    selectedPayment?.status === 'paid' ? "bg-green-500 text-white" : "bg-amber-500 text-white"
+                                )}>
+                                    {selectedPayment?.status}
+                                </Badge>
                             </div>
-                            <Button variant="outline" className="w-full h-12 rounded-xl font-bold gap-2" onClick={() => handleShare(selectedPayment)}>
+
+                            <div className="p-4 md:p-6 space-y-6">
+                                <div className="grid grid-cols-2 gap-y-6 gap-x-4 text-sm">
+                                    <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
+                                        <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Labourer</p>
+                                        <p className="font-bold text-foreground truncate">{selectedPayment?.labourer?.name}</p>
+                                    </div>
+                                    <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
+                                        <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Date</p>
+                                        <p className="font-bold text-foreground">{formatDate(selectedPayment?.transaction_date)}</p>
+                                    </div>
+                                    <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
+                                        <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Method</p>
+                                        <p className="font-bold text-foreground capitalize">{selectedPayment?.method.replace('_', ' ')}</p>
+                                    </div>
+                                    <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
+                                        <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Transaction ID</p>
+                                        <p className="font-mono text-[10px] text-foreground truncate" title={selectedPayment?.id}>
+                                            #{selectedPayment?.id.slice(0, 8)}
+                                        </p>
+                                    </div>
+
+                                    {selectedPayment?.razorpay_order_id && (
+                                        <div className="col-span-2 bg-muted/30 p-3 rounded-lg border border-border/40">
+                                            <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Razorpay Order ID</p>
+                                            <p className="font-mono text-[11px] text-foreground break-all">{selectedPayment.razorpay_order_id}</p>
+                                        </div>
+                                    )}
+                                    {selectedPayment?.razorpay_payment_id && (
+                                        <div className="col-span-2 bg-muted/30 p-3 rounded-lg border border-border/40">
+                                            <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider mb-1">Razorpay Payment ID</p>
+                                            <p className="font-mono text-[11px] text-foreground break-all">{selectedPayment.razorpay_payment_id}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 z-10">
+                            <Button size="sm" variant="outline" className="w-full h-10 rounded-xl font-bold gap-2" onClick={() => handleShare(selectedPayment)}>
                                 <Share2 className="h-4 w-4" />
                                 Share Receipt
                             </Button>

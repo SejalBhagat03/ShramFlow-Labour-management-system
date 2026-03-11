@@ -19,6 +19,7 @@ router.get('/', protect, authorize(['supervisor']), async (req, res, next) => {
         if (error) throw error;
         res.json(data);
     } catch (error) {
+        console.error('[AuditRoutes] Error fetching logs:', error);
         next(error);
     }
 });

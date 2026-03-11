@@ -27,20 +27,19 @@ const Flagged = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10 text-white">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b text-white">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                                <span className="text-sm font-medium text-white/70 uppercase tracking-wider">Security & Fraud Review</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-white/70">Security & Fraud Review</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-white flex items-center gap-3">
-                                <AlertTriangle className="h-8 w-8 text-destructive" />
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-white flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 md:h-6 md:w-6 text-destructive" />
                                 {t("flaggedReview")}
                             </h1>
-                            <p className="text-white/80 mt-2 text-lg font-medium">
+                            <p className="text-white/80 mt-1 text-xs sm:text-sm md:text-base font-medium">
                                 {isLoading ? 'System check in progress...' : `${flaggedEntries.length} items require immediate attention`}
                             </p>
                         </div>

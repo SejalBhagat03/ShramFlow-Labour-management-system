@@ -269,33 +269,33 @@ const Login = () => {
             {/* Main Content */}
             <main className="flex-1 flex items-center justify-center p-4">
                 <div className="w-full max-w-md space-y-6 animate-fade-in">
-                    <div className="text-center space-y-2">
-                        <h2 className="text-3xl font-bold text-foreground">
+                    <div className="text-center space-y-1.5">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                             {isSignupMode ? 'Create Account' : t('welcomeBack')}
                         </h2>
-                        <p className="text-muted-foreground">
+                        <p className="text-sm md:text-base text-muted-foreground">
                             {isSignupMode ? 'Register as a Supervisor' : t('loginSubtitle')}
                         </p>
                     </div>
 
                     {/* Supervisor Login/Signup Card */}
-                    <Card className="shadow-card border-2 hover:border-primary/20 transition-colors">
-                        <CardHeader className="pb-3">
+                    <Card className="shadow-card border-none bg-card/80 backdrop-blur-sm hover:shadow-lg transition-all">
+                        <CardHeader className="pb-3 pt-5 px-5 md:px-6">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <UserCircle className="h-6 w-6 text-primary" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <UserCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-lg">
+                                    <CardTitle className="text-base md:text-lg font-bold">
                                         {isSignupMode ? 'Supervisor Registration' : t('loginAsSupervisor')}
                                     </CardTitle>
-                                    <CardDescription>
+                                    <CardDescription className="text-xs md:text-sm">
                                         {isSignupMode ? 'Create your supervisor account' : 'Manage your workforce'}
                                     </CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="px-5 md:px-6 pb-6">
                             {isSignupMode ? (
                                 <form onSubmit={handleSupervisorSignup} className="space-y-4">
                                     <div className="space-y-2">

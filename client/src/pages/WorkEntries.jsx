@@ -190,35 +190,38 @@ const WorkEntries = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
                 {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
+                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-6">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Project Tracking</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Project Tracking</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">{t('workEntries')}</h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t('workEntries')}</h1>
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
                                 {filteredEntries.length} entries recorded • Track progress & approve work
                             </p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-2">
                             <Button
                                 variant="outline"
-                                className="h-11 px-5 rounded-xl bg-background/50 backdrop-blur-sm border-2 font-bold"
+                                size="sm"
+                                className="py-2.5 px-3 rounded-xl bg-background/50 backdrop-blur-sm border text-xs font-bold h-auto"
                                 onClick={() => setIsAddModalOpen(true)}
                             >
-                                <ClipboardPlus className="h-4 w-4 mr-2" />
-                                {t('singleLabour')}
+                                <ClipboardPlus className="h-3.5 w-3.5 sm:mr-2" />
+                                <span className="hidden sm:inline">{t('singleLabour')}</span>
                             </Button>
                             <Button
-                                className="h-11 px-6 rounded-xl gradient-primary shadow-glow font-bold"
+                                size="sm"
+                                className="py-2.5 px-4 rounded-xl gradient-primary shadow-glow text-xs font-bold h-auto"
                                 onClick={() => navigate('/work-entries/group')}
                             >
-                                <Users className="h-4 w-4 mr-2" />
-                                {t('groupEntryMultiLabour')}
+                                <Users className="h-3.5 w-3.5 sm:mr-2" />
+                                <span className="hidden sm:inline">{t('groupEntryMultiLabour')}</span>
+                                <span className="sm:hidden">Group</span>
                             </Button>
                         </div>
                     </div>
@@ -227,20 +230,20 @@ const WorkEntries = () => {
                 {/* Main Content Sections */}
                 <div className="space-y-6">
                     {/* Filters Section */}
-                    <div className="flex flex-col sm:flex-row gap-4 bg-card p-5 rounded-2xl border shadow-sm">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-6 bg-card p-4 md:p-6 rounded-2xl border shadow-sm">
                         <div className="relative flex-1">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder={`${t('search')} by name, task...`}
-                                className="pl-11 h-12 bg-muted/40 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl"
+                                className="pl-11 py-2 px-3 h-10 md:h-11 bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 rounded-xl text-xs sm:text-sm"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full sm:w-52 h-12 bg-muted/40 border-none rounded-xl px-4">
+                            <SelectTrigger className="w-full sm:w-48 h-10 md:h-11 bg-muted/40 border-none rounded-xl px-4 text-xs">
                                 <div className="flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-muted-foreground" />
+                                    <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                                     <SelectValue placeholder={t('status')} />
                                 </div>
                             </SelectTrigger>
@@ -390,19 +393,20 @@ const WorkEntries = () => {
 
                     {/* Add Work Entry Modal */}
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                        <DialogContent className="sm:max-w-lg">
-                            <DialogHeader>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
                                 <DialogTitle>{t('addWorkEntry')}</DialogTitle>
-                                <DialogDescription>Record a new work entry for a labourer.</DialogDescription>
+                                <DialogDescription className="text-xs">Record a new work entry for a labourer.</DialogDescription>
                             </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>{t('assignTo')} *</Label>
+
+                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t('assignTo')} *</Label>
                                     <Select
                                         value={formData.labourer_id}
                                         onValueChange={(value) => setFormData({ ...formData, labourer_id: value })}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-9 text-sm">
                                             <SelectValue placeholder="Select labourer" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -417,22 +421,23 @@ const WorkEntries = () => {
                                     </Select>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>{t('date')} *</Label>
+                                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">{t('date')} *</Label>
                                         <Input
                                             type="date"
                                             value={formData.date}
                                             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                            className="h-9 text-sm"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>{t('taskType')} *</Label>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">{t('taskType')} *</Label>
                                         <Select
                                             value={formData.task_type}
                                             onValueChange={(value) => setFormData({ ...formData, task_type: value })}
                                         >
-                                            <SelectTrigger>
+                                            <SelectTrigger className="h-9 text-sm">
                                                 <SelectValue placeholder="Select task" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -446,51 +451,53 @@ const WorkEntries = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>{t('meters')} (optional)</Label>
+                                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">{t('meters')} (optional)</Label>
                                         <Input
                                             type="number"
                                             placeholder="0"
                                             value={formData.meters || ''}
                                             onChange={(e) => setFormData({ ...formData, meters: e.target.value ? Number(e.target.value) : undefined })}
+                                            className="h-9 text-sm"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>{t('hours')} (optional)</Label>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">{t('hours')} (optional)</Label>
                                         <Input
                                             type="number"
                                             placeholder="0"
                                             value={formData.hours || ''}
                                             onChange={(e) => setFormData({ ...formData, hours: e.target.value ? Number(e.target.value) : undefined })}
+                                            className="h-9 text-sm"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>{t('location')}</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t('location')}</Label>
                                     <div className="flex gap-2">
                                         <Input
                                             placeholder="Site A - Block 3"
                                             value={formData.location}
                                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                            className="h-9 text-sm"
                                         />
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="icon"
+                                            className="h-9 w-9 shrink-0"
                                             onClick={() => {
                                                 if (navigator.geolocation) {
                                                     navigator.geolocation.getCurrentPosition(
                                                         (position) => {
                                                             const { latitude, longitude } = position.coords;
-                                                            // Update formData with lat/long and potentially autofill location text with reverse geocoding if we had an API
-                                                            // For now just store lat/long in state
                                                             setFormData(prev => ({
                                                                 ...prev,
                                                                 latitude,
                                                                 longitude,
-                                                                location: prev.location || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` // Auto-fill if empty
+                                                                location: prev.location || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
                                                             }));
                                                             alert("Location captured!");
                                                         },
@@ -510,34 +517,38 @@ const WorkEntries = () => {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>{t('description')}</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t('description')}</Label>
                                     <Textarea
                                         placeholder="Describe the work done..."
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         onBlur={handleAutoTranslateDescription}
+                                        className="min-h-[80px] text-sm resize-none"
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>{t('totalAmount')} (₹) *</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t('totalAmount')} (₹) *</Label>
                                     <Input
                                         type="number"
                                         placeholder="0"
                                         value={formData.amount || ''}
                                         onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                                        className="h-9 text-sm font-semibold"
                                     />
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-[10px] text-muted-foreground font-medium">
                                         Suggested: ₹{calculateAmount().toLocaleString()}
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3">
-                                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+
+                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
+                                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)}>
                                     {t('cancel')}
                                 </Button>
                                 <Button
+                                    size="sm"
                                     className="gradient-primary"
                                     onClick={handleSave}
                                     disabled={!formData.labourer_id || !formData.task_type || !formData.amount || createWorkEntry.isPending}

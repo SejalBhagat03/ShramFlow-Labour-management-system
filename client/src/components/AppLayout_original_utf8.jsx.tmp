@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -20,37 +20,24 @@ import {
     X,
     Bell,
     Shield,
+    Sparkles,
     CalendarDays,
     History,
-    User,
-    ChevronDown,
-    HardHat,
 } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 /**
  * AppLayout component that provides basic scaffolding for the application.
  * Includes a responsive sidebar, header, and user profile management within the layout.
+ *
+ * @param {Object} props - Component properties.
+ * @param {React.ReactNode} props.children - Child components to be rendered within the layout.
+ * @returns {JSX.Element} The AppLayout component.
  */
 export const AppLayout = ({ children }) => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-
-    // Get current date formatted
-    const currentDate = new Intl.DateTimeFormat('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-    }).format(new Date());
 
     // Navigation items configuration
     const navItems = [
@@ -59,10 +46,12 @@ export const AppLayout = ({ children }) => {
         { path: '/work-entries', icon: ClipboardList, label: t('workEntries') },
         { path: '/payments', icon: CreditCard, label: t('payments') },
         { path: '/daily-logs', icon: CalendarDays, label: t('dailyLogs') },
-        { path: '/work-disputes', icon: AlertTriangle, label: t('workDisputes') },
+        { path: '/work-disputes', icon: AlertTriangle, label: t('workDisputes'), badge: null },
         { path: '/reports', icon: BarChart3, label: t('reports') },
-        ...(user?.role === 'supervisor' ? [{ path: '/audit-logs', icon: History, label: 'Audit Logs' }] : []),
-        { path: '/flagged', icon: AlertTriangle, label: t('flagged') },
+        ...(user?.role === 'supervisor' ? [
+            { path: '/audit-logs', icon: History, label: 'Audit Logs' }
+        ] : []),
+        { path: '/flagged', icon: AlertTriangle, label: t('flagged'), badge: null },
     ];
 
     const bottomNavItems = [
@@ -71,102 +60,30 @@ export const AppLayout = ({ children }) => {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* Main Header - Unified for Desktop & Mobile */}
-            <header className="fixed top-0 left-0 right-0 h-14 md:h-16 bg-background/80 backdrop-blur-md border-b border-border/40 z-40 transition-all duration-300">
-                <div className={cn("h-full px-3 md:px-8 flex items-center justify-between ml-0 transition-all duration-300", "lg:ml-72")}>
-                    {/* Left: Branding (Only shown on mobile, hidden on desktop) */}
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 lg:hidden">
-                            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shadow-glow-sm flex-shrink-0">
-                                <HardHat className="h-4 w-4 text-primary-foreground" />
-                            </div>
-                            <h1 className="hidden xs:block font-bold text-sm md:text-lg text-gradient truncate max-w-[100px] sm:max-w-none">{t('appName')}</h1>
-                        </div>
+            {/* Mobile Header - Fixed at top for small screens */}
+            <header className="lg:hidden fixed top-0 left-0 right-0 h-16 glass-strong border-b z-50 px-4 flex items-center justify-between">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSidebarOpen(true)}
+                    className="hover:bg-primary/10"
+                >
+                    <Menu className="h-5 w-5" />
+                </Button>
 
-                        <div className="hidden lg:block">
-                            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{t('dashboard')}</h2>
-                        </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shadow-glow-sm">
+                        <Sparkles className="h-4 w-4 text-primary-foreground" />
                     </div>
+                    <h1 className="font-bold text-lg text-gradient">{t('appName')}</h1>
+                </div>
 
-                    {/* Right: Date + Extras + Sidebar Toggle */}
-                    <div className="flex items-center gap-1.5 sm:gap-4 justify-end">
-                        {/* Date */}
-                        <div className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-muted/50 text-muted-foreground">
-                            <CalendarDays className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                            <span className="text-[10px] md:text-xs font-medium whitespace-nowrap">{currentDate}</span>
-                        </div>
-
-                        <div className="scale-90 md:scale-100 origin-right">
-                            <LanguageSwitcher />
-                        </div>
-                        
-                        <div className="scale-90 md:scale-100">
-                            <NotificationBell />
-                        </div>
-
-                        <div className="h-6 md:h-8 w-[1px] bg-border/60 mx-0.5 hidden sm:block" />
-
-                        {/* Profile Dropdown */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 md:h-10 flex items-center gap-2 px-1 md:px-2 hover:bg-primary/5 rounded-full outline-none">
-                                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full gradient-primary flex items-center justify-center shadow-sm flex-shrink-0">
-                                        <span className="text-primary-foreground font-bold text-[10px] md:text-xs">
-                                            {(user?.name ?? 'U').charAt(0)}
-                                        </span>
-                                    </div>
-                                    <div className="hidden sm:flex flex-col items-start gap-0 text-left mr-1">
-                                        <span className="text-xs font-semibold text-foreground leading-tight">{user?.name?.split(' ')[0]}</span>
-                                        <span className="text-[10px] text-muted-foreground leading-tight capitalize">{user?.role}</span>
-                                    </div>
-                                    <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 mt-1 rounded-2xl p-2 shadow-xl border-border/40 backdrop-blur-xl">
-                                <DropdownMenuLabel className="font-normal px-2 py-2">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-semibold leading-none">{user?.name}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="my-1 bg-border/40" />
-                                <DropdownMenuItem asChild className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer gap-2 py-2.5">
-                                    <Link to="/settings" className="w-full flex items-center">
-                                        <User className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer gap-2 py-2.5">
-                                    <Link to="/settings" className="w-full flex items-center">
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="my-1 bg-border/40" />
-                                <DropdownMenuItem 
-                                    onClick={logout}
-                                    className="rounded-xl focus:bg-destructive/10 focus:text-destructive cursor-pointer gap-2 py-2.5 text-destructive"
-                                >
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* Sidebar Toggle - Moved to right side for mobile */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSidebarOpen(true)}
-                            className="lg:hidden hover:bg-primary/10 ml-1 rounded-full border border-border/40"
-                        >
-                            <Menu className="h-5 w-5" />
-                        </Button>
-                    </div>
+                <div className="flex items-center gap-1">
+                    <NotificationBell />
                 </div>
             </header>
 
-            {/* Sidebar Overlay */}
+            {/* Sidebar Overlay - Closes sidebar when clicking outside on mobile */}
             {sidebarOpen && (
                 <div
                     className="lg:hidden fixed inset-0 bg-foreground/30 backdrop-blur-sm z-40 transition-opacity duration-300"
@@ -186,7 +103,7 @@ export const AppLayout = ({ children }) => {
                         <div className="flex items-center gap-3">
                             <div className="relative">
                                 <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow-sm">
-                                    <HardHat className="h-5 w-5 text-primary-foreground" />
+                                    <Sparkles className="h-5 w-5 text-primary-foreground" />
                                 </div>
                                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success rounded-full border-2 border-sidebar" />
                             </div>
@@ -199,7 +116,7 @@ export const AppLayout = ({ children }) => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-9 w-9 md:h-10 md:w-10 text-muted-foreground mr-1 lg:hidden rounded-full"
+                            className="lg:hidden hover:bg-sidebar-accent"
                             onClick={() => setSidebarOpen(false)}
                         >
                             <X className="h-5 w-5" />
@@ -258,6 +175,14 @@ export const AppLayout = ({ children }) => {
                                         )} strokeWidth={2} />
                                     </div>
                                     <span className="flex-1">{item.label}</span>
+                                    {item.badge && (
+                                        <Badge
+                                            variant="destructive"
+                                            className="h-5 min-w-5 px-1.5 text-xs font-bold animate-pulse-soft"
+                                        >
+                                            {item.badge}
+                                        </Badge>
+                                    )}
                                     {isActive && (
                                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                     )}
@@ -268,6 +193,7 @@ export const AppLayout = ({ children }) => {
 
                     {/* Bottom Actions (Language, Settings, Logout) */}
                     <div className="p-3 border-t border-sidebar-border space-y-1">
+                        <LanguageSwitcher />
                         {bottomNavItems.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
@@ -300,8 +226,24 @@ export const AppLayout = ({ children }) => {
             </aside>
 
             {/* Main Content Area */}
-            <main className="lg:ml-72 pt-14 md:pt-16 min-h-screen transition-all duration-300">
-                <div className="min-h-0">
+            <main className="lg:ml-72 pt-16 lg:pt-0 min-h-screen transition-all duration-300">
+                {/* Desktop Header */}
+                <header className="hidden lg:flex items-center justify-end h-16 px-8 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+                    <div className="flex items-center gap-4">
+                        <NotificationBell />
+                        <div className="h-8 w-[1px] bg-border/60 mx-1" />
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-muted-foreground">Hello, {user?.name?.split(' ')[0] || 'User'}</span>
+                            <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shadow-sm">
+                                <span className="text-primary-foreground font-bold text-xs">
+                                    {(user?.name ?? 'U').charAt(0)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div className="p-4 lg:p-8 max-w-7xl mx-auto">
                     {children}
                 </div>
             </main>

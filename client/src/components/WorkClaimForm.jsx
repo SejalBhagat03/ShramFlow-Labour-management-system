@@ -240,7 +240,7 @@ export const WorkClaimForm = ({ labourerId, userId }) => {
                             />
                             {photoPreview ? (
                                 <div className="relative aspect-square rounded-lg overflow-hidden border">
-                                    <img src={photoPreview} alt="Before" className="w-full h-full object-cover" />
+                                    <img src={photoPreview} alt="Before" className="w-full h-full object-cover" loading="lazy" />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                         <Camera className="h-6 w-6 text-white" />
                                     </div>
@@ -269,7 +269,7 @@ export const WorkClaimForm = ({ labourerId, userId }) => {
                             />
                             {photoAfterPreview ? (
                                 <div className="relative aspect-square rounded-lg overflow-hidden border">
-                                    <img src={photoAfterPreview} alt="After" className="w-full h-full object-cover" />
+                                    <img src={photoAfterPreview} alt="After" className="w-full h-full object-cover" loading="lazy" />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                         <Camera className="h-6 w-6 text-white" />
                                     </div>

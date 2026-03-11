@@ -26,14 +26,22 @@ const AuditLog = () => {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
-            const response = await fetch(`${API_BASE}/api/audit`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            try {
+                const response = await fetch(`${API_BASE}/api/audit`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-            if (!response.ok) throw new Error('Failed to fetch audit logs');
-            return response.json();
+                if (!response.ok) {
+                    const errorBody = await response.json().catch(() => ({}));
+                    throw new Error(errorBody.message || `Failed to fetch audit logs: ${response.status}`);
+                }
+                return response.json();
+            } catch (error) {
+                console.error('[AuditLog] Fetch error:', error);
+                throw error;
+            }
         }
     });
 
@@ -58,87 +66,68 @@ const AuditLog = () => {
 
     return (
         <AppLayout>
-            <div className="p-6 max-w-7xl mx-auto space-y-6">
-                <div className="flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                            <History className="h-8 w-8 text-primary" />
-                            Activity Audit Logs
-                        </h1>
-                        <p className="text-muted-foreground mt-1">
-                            Track all critical actions performed by supervisors in your organization.
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">System Activity</span>
+                        </div>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">Audit Logs</h1>
+                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
+                            Review system changes and user actions
                         </p>
                     </div>
                 </div>
 
-                <Card className="shadow-card border-none bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="pb-3 border-b">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Activity className="h-5 w-5 text-primary" />
-                            System Activities
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
+                <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
                         {isLoading ? (
                             <div className="flex items-center justify-center p-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
                         ) : logs?.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="bg-muted/30">
-                                        <TableRow>
-                                            <TableHead className="w-[180px]">Timestamp</TableHead>
-                                            <TableHead>Supervisor</TableHead>
-                                            <TableHead>Action</TableHead>
-                                            <TableHead>Entity</TableHead>
-                                            <TableHead>Entity ID</TableHead>
+                            <Table>
+                                <TableHeader className="bg-muted/40">
+                                    <TableRow>
+                                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">Time</TableHead>
+                                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">User</TableHead>
+                                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">Action</TableHead>
+                                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">Resource</TableHead>
+                                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">Details</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {logs.map((log) => (
+                                        <TableRow key={log.id} className="hover:bg-muted/30 transition-colors">
+                                            <TableCell className="text-xs font-medium whitespace-nowrap">
+                                                {new Date(log.created_at).toLocaleString()}
+                                            </TableCell>
+                                            <TableCell className="text-xs font-semibold">
+                                                {log.profiles?.full_name || 'System'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {getActionBadge(log.action)}
+                                            </TableCell>
+                                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{log.entity_type}</TableCell>
+                                            <TableCell className="text-xs max-w-xs truncate" title={JSON.stringify(log.details)}>
+                                                {log.entity_id ? `#${log.entity_id.substring(0, 8)}...` : JSON.stringify(log.details)}
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {logs.map((log) => (
-                                            <TableRow key={log.id} className="hover:bg-muted/50 transition-colors">
-                                                <TableCell className="font-medium text-muted-foreground whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        <Clock className="h-3 w-3" />
-                                                        {new Date(log.created_at).toLocaleString()}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <User className="h-4 w-4 text-muted-foreground" />
-                                                        {log.profiles?.full_name || 'System'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {getActionBadge(log.action)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="font-semibold text-foreground">
-                                                        {log.entity_type}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="font-mono text-xs text-muted-foreground">
-                                                    #{log.entity_id.substring(0, 8)}...
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         ) : (
                             <div className="flex flex-col items-center justify-center p-12 text-center">
-                                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                    <Activity className="h-8 w-8 text-muted-foreground" />
-                                </div>
+                                <Activity className="h-8 w-8 text-muted-foreground mb-4" />
                                 <h3 className="text-lg font-semibold">No Logs Found</h3>
-                                <p className="text-muted-foreground max-w-sm">
+                                <p className="text-muted-foreground max-w-sm text-sm">
                                     Activity logs will appear here once critical actions are performed.
                                 </p>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

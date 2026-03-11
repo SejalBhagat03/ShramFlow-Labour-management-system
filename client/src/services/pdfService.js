@@ -1,6 +1,3 @@
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-
 /**
  * PdfService
  * Handles PDF generation for ledgers and reports.
@@ -10,9 +7,13 @@ export const pdfService = {
      * Generate a professional Labour Ledger PDF
      * @param {Object} data 
      */
-    generateLedgerPDF(data) {
+    async generateLedgerPDF(data) {
+        // Dynamic import to reduce initial bundle size
+        const { jsPDF } = await import('jspdf');
+        await import('jspdf-autotable');
+
         const { name, name_hindi, phone, totalEarned, totalPaid, balance, entries, payments } = data;
-        const doc = jsPDF();
+        const doc = new jsPDF();
 
         // 1. Header Section
         doc.setFontSize(22);

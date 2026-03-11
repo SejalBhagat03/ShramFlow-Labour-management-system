@@ -267,7 +267,7 @@ export const DailyWorkWizard = ({ labourerId, userId, onComplete }) => {
                     <div className="flex flex-col items-center gap-6">
                         {beforePreview && (
                             <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-success">
-                                <img src={beforePreview} alt="Before" className="w-full h-full object-cover" />
+                                <img src={beforePreview} alt="Before" className="w-full h-full object-cover" loading="lazy" />
                             </div>
                         )}
                         <div className="text-center">
@@ -316,12 +316,12 @@ export const DailyWorkWizard = ({ labourerId, userId, onComplete }) => {
                         <div className="flex gap-4">
                             {beforePreview && (
                                 <div className="w-20 h-20 rounded-lg overflow-hidden border">
-                                    <img src={beforePreview} alt="Before" className="w-full h-full object-cover" />
+                                    <img src={beforePreview} alt="Before" className="w-full h-full object-cover" loading="lazy" />
                                 </div>
                             )}
                             {afterPreview && (
                                 <div className="w-20 h-20 rounded-lg overflow-hidden border">
-                                    <img src={afterPreview} alt="After" className="w-full h-full object-cover" />
+                                    <img src={afterPreview} alt="After" className="w-full h-full object-cover" loading="lazy" />
                                 </div>
                             )}
                         </div>

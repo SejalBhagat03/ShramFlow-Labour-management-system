@@ -138,35 +138,34 @@ const RoleManagement = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t("accessControl")}</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">{t("accessControl")}</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                                <Shield className="h-8 w-8 text-primary" />
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+                                <Shield className="h-4 w-4 md:h-6 md:w-6 text-primary" />
                                 {t("roleManagement")}
                             </h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
                                 {t("roleManagementDesc")} • {t("regionalAdministration")}
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 bg-background/50 backdrop-blur-md p-2 rounded-2xl border-2 shadow-sm">
-                            <div className="px-4 py-2 border-r last:border-0">
-                                <p className="text-2xl font-black text-foreground">{usersWithRoles.length}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Total Active</p>
+                        <div className="flex items-center gap-2 bg-background/50 backdrop-blur-md p-1.5 rounded-xl border shadow-sm">
+                            <div className="px-3 py-1 border-r last:border-0 text-center">
+                                <p className="text-lg font-black text-foreground">{usersWithRoles.length}</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Total</p>
                             </div>
-                            <div className="px-4 py-2 border-r last:border-0 text-blue-600">
-                                <p className="text-2xl font-black">{supervisorCount}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Supervisors</p>
+                            <div className="px-3 py-1 border-r last:border-0 text-blue-600 text-center">
+                                <p className="text-lg font-black">{supervisorCount}</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Admins</p>
                             </div>
-                            <div className="px-4 py-2 text-green-600">
-                                <p className="text-2xl font-black">{labourCount}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Labourers</p>
+                            <div className="px-3 py-1 text-green-600 text-center">
+                                <p className="text-lg font-black">{labourCount}</p>
+                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Labour</p>
                             </div>
                         </div>
                     </div>
@@ -260,41 +259,44 @@ const RoleManagement = () => {
 
                     {/* Role Change Confirmation Dialog */}
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
+                                <DialogTitle className="flex items-center gap-2 text-lg">
                                     <AlertTriangle className="h-5 w-5 text-amber-500" />
                                     {t("confirmRoleChange")}
                                 </DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription className="text-xs">
                                     {t("roleChangeWarning")}
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>{t("user")}</Label>
-                                    <p className="text-foreground font-medium">{selectedUser?.profile?.full_name || t("unknownUser")}</p>
+                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("user")}</Label>
+                                    <p className="text-sm font-bold text-foreground">{selectedUser?.profile?.full_name || t("unknownUser")}</p>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>{t("currentRole")}</Label>
-                                    <Badge
-                                        variant="secondary"
-                                        className={
-                                            selectedUser?.role === "supervisor"
-                                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                                                : "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                                        }
-                                    >
-                                        {selectedUser?.role === "supervisor" ? "Supervisor" : "Labour"}
-                                    </Badge>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("currentRole")}</Label>
+                                    <div>
+                                        <Badge
+                                            variant="secondary"
+                                            className={cn(
+                                                "text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider",
+                                                selectedUser?.role === "supervisor"
+                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                                                    : "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                                            )}
+                                        >
+                                            {selectedUser?.role === "supervisor" ? "Supervisor" : "Labour"}
+                                        </Badge>
+                                    </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="newRole">{t("newRole")}</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="newRole" className="text-xs font-semibold">{t("newRole")}</Label>
                                     <Select value={newRole} onValueChange={(v) => setNewRole(v)}>
-                                        <SelectTrigger id="newRole">
+                                        <SelectTrigger id="newRole" className="h-9 text-sm font-semibold">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -305,20 +307,19 @@ const RoleManagement = () => {
                                 </div>
 
                                 {newRole === "supervisor" && (
-                                    <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                        <p className="text-sm text-amber-700 dark:text-amber-400">
-                                            <strong>Warning:</strong> Supervisors have full access to manage labourers, work entries, payments,
-                                            and can change other users' roles.
+                                    <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
+                                            <span className="font-bold">Warning:</span> Supervisors have full access to manage labourers, work entries, payments, and other users' roles.
                                         </p>
                                     </div>
                                 )}
                             </div>
 
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
+                                <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(false)}>
                                     {t("cancel")}
                                 </Button>
-                                <Button onClick={confirmRoleChange} disabled={updateRoleMutation.isPending} className="gradient-primary">
+                                <Button size="sm" onClick={confirmRoleChange} disabled={updateRoleMutation.isPending} className="gradient-primary px-6">
                                     {updateRoleMutation.isPending ? (
                                         <>
                                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -328,7 +329,7 @@ const RoleManagement = () => {
                                         t("confirmChange")
                                     )}
                                 </Button>
-                            </DialogFooter>
+                            </div>
                         </DialogContent>
                     </Dialog>
                 </div>

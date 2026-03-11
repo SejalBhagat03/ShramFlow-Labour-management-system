@@ -49,8 +49,17 @@ const LabourDashboardV2 = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-8 p-4">
-                <h1 className="text-xl font-bold">{t("yourAssignments")}</h1>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-4 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 -mt-6 lg:-mt-10 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Assignments</span>
+                        </div>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("yourAssignments")}</h1>
+                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Track your work and submit claims</p>
+                    </div>
+                </div>
                 {isLoading ? (
                     <p>Loading...</p>
                 ) : assignments.length === 0 ? (
@@ -58,40 +67,53 @@ const LabourDashboardV2 = () => {
                 ) : (
                     <>
                         {/* pending / claim table */}
-                        <div className="bg-card p-4 rounded-lg shadow">
-                            <h2 className="font-semibold mb-2">{t("pendingClaimableWork")}</h2>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm table-auto">
+                        <div className="bg-card p-3 md:p-5 rounded-2xl border shadow-sm space-y-3">
+                            <h2 className="text-sm md:text-base font-semibold text-foreground">{t("pendingClaimableWork")}</h2>
+                            <div className="overflow-x-auto -mx-1 px-1">
+                                <table className="w-full text-xs md:text-sm table-auto border-collapse">
                                     <thead>
-                                        <tr className="text-left">
-                                            <th className="p-2">{t("workEntry")}</th>
-                                            <th className="p-2">{t("assigned")}</th>
-                                            <th className="p-2">{t("yourClaim")}</th>
-                                            <th className="p-2">{t("status")}</th>
-                                            <th className="p-2">{t("actions")}</th>
+                                        <tr className="text-left bg-muted/30">
+                                            <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("workEntry")}</th>
+                                            <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("assigned")}</th>
+                                            <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("yourClaim")}</th>
+                                            <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("status")}</th>
+                                            <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("actions")}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {pending.map(a => (
-                                            <tr key={a.id} className="border-t">
-                                                <td className="p-2">
-                                                    {a.work_order?.work_type} ({a.work_order?.total_quantity} {a.work_order?.unit})
+                                            <tr key={a.id} className="border-t hover:bg-muted/10 transition-colors">
+                                                <td className="p-2 md:p-3">
+                                                    <div className="font-semibold text-foreground text-xs">
+                                                        {a.work_order?.work_type}
+                                                    </div>
+                                                    <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                                        ({a.work_order?.total_quantity} {a.work_order?.unit})
+                                                    </div>
                                                 </td>
-                                                <td className="p-2">
+                                                <td className="p-2 md:p-3 whitespace-nowrap text-xs">
                                                     {a.assigned_quantity} {a.work_order?.unit}
                                                 </td>
-                                                <td className="p-2">
+                                                <td className="p-2 md:p-3">
                                                     <Input
-                                                        className="w-24"
+                                                        className="w-full md:w-24 text-xs h-8"
                                                         type="number"
                                                         value={claimValues[a.id] || ''}
                                                         onChange={(e) => handleChange(a.id, e.target.value)}
                                                     />
                                                 </td>
-                                                <td className="p-2 capitalize">{a.status}</td>
-                                                <td className="p-2">
+                                                <td className="p-2 md:p-3">
+                                                    <span className={cn(
+                                                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                                        a.status === 'pending' ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"
+                                                    )}>
+                                                        {a.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2 md:p-3">
                                                     <Button
                                                         size="sm"
+                                                        className="w-full md:w-auto h-8 text-xs font-bold"
                                                         onClick={() => handleSubmit(a)}
                                                         disabled={updateClaimMutation.isLoading}
                                                     >
@@ -111,25 +133,26 @@ const LabourDashboardV2 = () => {
 
                         {/* confirmed section */}
                         {confirmed.length > 0 && (
-                            <div className="bg-card p-4 rounded-lg shadow">
-                                <h2 className="font-semibold mb-2">{t("confirmedWorkPayment")}</h2>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm table-auto">
+                            <div className="bg-card p-4 md:p-6 rounded-2xl border shadow-sm space-y-3">
+                                <h2 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-success" />
+                                    {t("confirmedWorkPayment")}
+                                </h2>
+                                <div className="overflow-x-auto -mx-0">
+                                    <table className="w-full text-xs md:text-sm table-auto border-collapse min-w-[400px]">
                                         <thead>
-                                            <tr className="text-left">
-                                                <th className="p-2">{t("workEntry")}</th>
-                                                <th className="p-2">{t("labourerClaimed")}</th>
-                                                <th className="p-2">{t("unit")}</th>
+                                            <tr className="text-left bg-muted/30">
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("workEntry")}</th>
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("labourerClaimed")}</th>
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("unit")}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {confirmed.map(a => (
-                                                <tr key={a.id} className="border-t">
-                                                    <td className="p-2">
-                                                        {a.work_order?.work_type}
-                                                    </td>
-                                                    <td className="p-2">{a.labour_claim}</td>
-                                                    <td className="p-2">{a.work_order?.unit}</td>
+                                                <tr key={a.id} className="border-t hover:bg-muted/10 transition-colors">
+                                                    <td className="p-2 md:p-3 font-semibold text-xs">{a.work_order?.work_type}</td>
+                                                    <td className="p-2 md:p-3 text-xs">{a.labour_claim}</td>
+                                                    <td className="p-2 md:p-3 text-xs">{a.work_order?.unit}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

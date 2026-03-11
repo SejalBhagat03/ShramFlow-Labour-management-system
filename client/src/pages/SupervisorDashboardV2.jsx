@@ -77,10 +77,25 @@ const SupervisorDashboardV2 = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-8 p-4">
-                {/* create order form */}
-                <div className="bg-card p-4 rounded-lg shadow">
-                    <h2 className="text-lg font-semibold mb-2">{t("createWorkOrder")}</h2>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-4 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 -mt-6 lg:-mt-10 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Supervisor Hub</span>
+                        </div>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("supervisorDashboard")}</h1>
+                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Manage work orders and assignments</p>
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
+                    {/* create work order */}
+                    <div className="bg-card p-4 md:p-6 rounded-2xl border shadow-sm space-y-4">
+                        <h2 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            {t("createNewWorkOrder")}
+                        </h2>
                     <form onSubmit={handleOrderSubmit} className="space-y-3">
                         <div>
                             <Label htmlFor="workType">Work type</Label>
@@ -123,48 +138,53 @@ const SupervisorDashboardV2 = () => {
                 </div>
 
                 {/* select existing order */}
-                <div>
-                    <h2 className="text-lg font-semibold mb-2">{t("currentWorkOrders")}</h2>
+                <div className="bg-card p-4 md:p-6 rounded-2xl border shadow-sm space-y-4">
+                    <h2 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-success" />
+                        {t("currentWorkOrders")}
+                    </h2>
                     {loadingOrders ? (
                         <p>{t("loading")}</p>
                     ) : workOrders.length === 0 ? (
                         <p>{t("noOrdersYet")}</p>
                     ) : (
-                        <ul className="space-y-1">
+                        <ul className="space-y-2">
                             {workOrders.map(order => (
                                 <li key={order.id}>
                                     <button
-                                        className={`w-full text-left p-2 rounded ${selectedOrder?.id === order.id ? 'bg-primary/10' : ''}`}
+                                        className={`w-full text-left p-3 rounded-xl border transition-all ${selectedOrder?.id === order.id ? 'bg-primary/10 border-primary/20 ring-1 ring-primary/20' : 'bg-card border-border hover:bg-muted/50'}`}
                                         onClick={() => setSelectedOrder(order)}
                                     >
-                                        {order.work_type} — {order.total_quantity} {order.unit}
+                                        <div className="font-semibold text-foreground">{order.work_type}</div>
+                                        <div className="text-xs text-muted-foreground">{order.total_quantity} {order.unit}</div>
                                     </button>
                                 </li>
                             ))}
                         </ul>
                     )}
                 </div>
+            </div>
 
                 {/* assignment section */}
                 {selectedOrder && (
-                    <div className="bg-card p-4 rounded-lg shadow">
-                        <h2 className="text-lg font-semibold mb-2">{t("assignLabourersFor", { name: selectedOrder.work_type })}</h2>
-                        <div className="space-y-2">
+                    <div className="bg-card p-3 md:p-4 rounded-lg shadow">
+                        <h2 className="text-lg font-semibold mb-3">{t("assignLabourersFor", { name: selectedOrder.work_type })}</h2>
+                        <div className="space-y-3">
                             {loadingLabourers ? (
                                 <p>{t("loading")}</p>
                             ) : labourers.length === 0 ? (
                                 <p>{t("noLabourersAvailable")}</p>
                             ) : (
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
                                     {labourers.map(l => (
-                                        <label key={l.id} className="flex items-center">
+                                        <label key={l.id} className="flex items-center p-2 rounded-lg border border-border bg-muted/5 cursor-pointer hover:bg-muted/10 transition-colors">
                                             <input
                                                 type="checkbox"
-                                                className="mr-2"
+                                                className="mr-3 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                                 checked={selectedLabourers.includes(l.id)}
                                                 onChange={() => toggleLabourer(l.id)}
                                             />
-                                            {l.name}
+                                            <span className="text-sm font-medium">{l.name}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -183,37 +203,45 @@ const SupervisorDashboardV2 = () => {
                         </Button>
 
                         {/* claims table */}
-                        <div className="mt-6">
-                            <h3 className="font-semibold mb-1">{t("currentAssignmentsClaims")}</h3>
+                        <div className="mt-8">
+                            <h3 className="font-semibold mb-3">{t("currentAssignmentsClaims")}</h3>
                             {loadingAssignments ? (
-                                <p>{t("loading")}</p>
+                                <p className="text-center py-4 text-xs text-muted-foreground">{t("loading")}</p>
                             ) : assignments.length === 0 ? (
-                                <p>{t("noData")}</p>
+                                <p className="text-center py-4 text-xs text-muted-foreground italic">{t("noData")}</p>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full table-auto text-sm">
+                                <div className="overflow-x-auto -mx-0">
+                                    <table className="w-full table-auto text-xs md:text-sm border-collapse min-w-[500px]">
                                         <thead>
-                                            <tr className="text-left">
-                                                <th className="p-2">{t("labourer")}</th>
-                                                <th className="p-2">{t("assigned")}</th>
-                                                <th className="p-2">{t("yourClaim")}</th>
-                                                <th className="p-2">{t("status")}</th>
-                                                <th className="p-2">{t("actions")}</th>
+                                            <tr className="text-left bg-muted/30">
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("labourer")}</th>
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("assigned")}</th>
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("yourClaim")}</th>
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("status")}</th>
+                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("actions")}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {assignments.map(a => (
-                                                <tr key={a.id} className="border-t">
-                                                    <td className="p-2">{a.labourer?.name || '—'}</td>
-                                                    <td className="p-2">
+                                                <tr key={a.id} className="border-t hover:bg-muted/10 transition-colors">
+                                                    <td className="p-2 md:p-3 font-medium text-xs">{a.labourer?.name || '—'}</td>
+                                                    <td className="p-2 md:p-3 whitespace-nowrap text-xs">
                                                         {a.assigned_quantity} {selectedOrder.unit}
                                                     </td>
-                                                    <td className="p-2">{a.labour_claim}</td>
-                                                    <td className="p-2 capitalize">{a.status}</td>
-                                                    <td className="p-2">
+                                                    <td className="p-2 md:p-3 text-xs">{a.labour_claim}</td>
+                                                    <td className="p-2 md:p-3">
+                                                        <span className={cn(
+                                                            "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                                            a.status === 'claimed' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                                        )}>
+                                                            {a.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2 md:p-3">
                                                         {a.status === 'claimed' ? (
                                                             <Button
                                                                 size="sm"
+                                                                className="h-8 rounded-lg text-xs font-bold"
                                                                 onClick={() => confirmWorkMutation.mutate(a.id)}
                                                             >
                                                                 Confirm

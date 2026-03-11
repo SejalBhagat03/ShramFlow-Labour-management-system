@@ -340,7 +340,7 @@ export const Chatbot = () => {
             <Button
                 onClick={() => setIsOpen(true)}
                 className={cn(
-                    "fixed bottom-6 right-6 z-50 h-16 w-16 rounded-full shadow-lg",
+                    "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg",
                     "bg-primary hover:bg-primary/90 text-primary-foreground",
                     "transition-all duration-300 hover:scale-110",
                     isOpen && "scale-0 opacity-0",
@@ -348,27 +348,27 @@ export const Chatbot = () => {
                 size="icon"
                 aria-label="Open chat assistant"
             >
-                <MessageCircle className="h-7 w-7" />
+                <MessageCircle className="h-6 w-6 md:h-7 md:w-7" />
             </Button>
 
             {/* Chat Modal */}
             <div
                 className={cn(
-                    "fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-32px)]",
+                    "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 w-[350px] md:w-[380px] max-w-[calc(100vw-32px)]",
                     "rounded-2xl bg-card border shadow-2xl",
                     "transition-all duration-300 origin-bottom-right",
                     isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none",
                 )}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b bg-primary rounded-t-2xl">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                            <Bot className="h-5 w-5 text-primary-foreground" />
+                <div className="flex items-center justify-between p-3 md:p-4 border-b bg-primary rounded-t-2xl">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                            <Bot className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-primary-foreground">{t("chatTitle")}</h3>
-                            <p className="text-xs text-primary-foreground/70">
+                            <h3 className="font-semibold text-sm md:text-base text-primary-foreground">{t("chatTitle")}</h3>
+                            <p className="text-[10px] md:text-xs text-primary-foreground/70">
                                 {isListening ? t("listening") : isLoading ? t("typing") : "Online"}
                             </p>
                         </div>

@@ -151,38 +151,45 @@ export const WorkAcknowledgmentList = ({
 
             {/* Dispute Dialog */}
             <Dialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
+                        <DialogTitle className="flex items-center gap-2 text-lg">
                             <AlertTriangle className="h-5 w-5 text-destructive" />
                             {t("raiseDispute")}
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="text-xs">
                             {t("disputeDescription")}
                         </DialogDescription>
                     </DialogHeader>
 
-                    {selectedAck && (
-                        <div className="p-3 rounded-lg bg-muted">
-                            <p className="text-sm text-muted-foreground">{t("supervisorRecorded")}:</p>
-                            <p className="font-bold text-lg">{selectedAck.daily_work_register?.meters || 0}m</p>
+                    <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                        {selectedAck && (
+                            <div className="p-3 rounded-xl bg-muted/50 border border-border/40">
+                                <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 mb-1">{t("supervisorRecorded")}</p>
+                                <p className="font-bold text-lg">{selectedAck.daily_work_register?.meters || 0}m</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">{t("reason")}</Label>
+                            <Textarea
+                                placeholder={t("resolutionNotesPlaceholder")}
+                                value={disputeReason}
+                                onChange={(e) => setDisputeReason(e.target.value)}
+                                className="min-h-[100px] text-sm resize-none"
+                            />
                         </div>
-                    )}
+                    </div>
 
-                    <Textarea
-                        placeholder={t("resolutionNotesPlaceholder")}
-                        value={disputeReason}
-                        onChange={(e) => setDisputeReason(e.target.value)}
-                        rows={4}
-                    />
-
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowDisputeDialog(false)}>
+                    <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
+                        <Button variant="outline" size="sm" onClick={() => setShowDisputeDialog(false)}>
                             {t("cancel")}
                         </Button>
                         <Button
+                            size="sm"
                             variant="destructive"
                             onClick={handleDispute}
+                            className="px-6"
                             disabled={!disputeReason.trim() || acknowledgeWork.isPending}
                         >
                             {acknowledgeWork.isPending ? (
@@ -191,7 +198,7 @@ export const WorkAcknowledgmentList = ({
                                 t("submitDispute")
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
         </>

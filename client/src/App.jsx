@@ -15,26 +15,27 @@ import { Button } from "@/components/ui/button";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Labourers from "./pages/Labourers";
-import LabourLedger from "./pages/LabourLedger";
-import WorkEntries from "./pages/WorkEntries";
-import Payments from "./pages/Payments";
-import Reports from "./pages/Reports";
-import Flagged from "./pages/Flagged";
-import Settings from "./pages/Settings";
-import AuditLog from "./pages/AuditLog";
-import LabourPortal from "./pages/LabourPortal";
-import DailyLogs from "./pages/DailyLogs";
-import WorkDisputes from "./pages/WorkDisputes";
-import GroupWorkEntry from "./pages/GroupWorkEntry";
-import LabourProfile from "./pages/LabourProfile";
-import SupervisorDashboardV2 from "./pages/SupervisorDashboardV2";
-import LabourDashboardV2 from "./pages/LabourDashboardV2";
-import NotFound from "./pages/NotFound";
+const Login = React.lazy(() => import("./pages/Login"));
+const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Labourers = React.lazy(() => import("./pages/Labourers"));
+const LabourLedger = React.lazy(() => import("./pages/LabourLedger"));
+const WorkEntries = React.lazy(() => import("./pages/WorkEntries"));
+const Payments = React.lazy(() => import("./pages/Payments"));
+const Reports = React.lazy(() => import("./pages/Reports"));
+const Flagged = React.lazy(() => import("./pages/Flagged"));
+const Settings = React.lazy(() => import("./pages/Settings"));
+const AuditLog = React.lazy(() => import("./pages/AuditLog"));
+const LabourPortal = React.lazy(() => import("./pages/LabourPortal"));
+const DailyLogs = React.lazy(() => import("./pages/DailyLogs"));
+const WorkDisputes = React.lazy(() => import("./pages/WorkDisputes"));
+const GroupWorkEntry = React.lazy(() => import("./pages/GroupWorkEntry"));
+const LabourProfile = React.lazy(() => import("./pages/LabourProfile"));
+const SupervisorDashboardV2 = React.lazy(() => import("./pages/SupervisorDashboardV2"));
+const LabourDashboardV2 = React.lazy(() => import("./pages/LabourDashboardV2"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+
 import { Chatbot } from "./components/Chatbot";
 
 import { Loader2, Shield } from "lucide-react";
@@ -139,7 +140,8 @@ const AppRoutes = () => {
     if (isLoading) return <LoadingScreen />;
 
     return (
-        <Routes>
+        <React.Suspense fallback={<LoadingScreen />}>
+            <Routes>
             {/* Public Routes */}
             <Route
                 path="/"
@@ -304,6 +306,7 @@ const AppRoutes = () => {
             {/* Fallback */}
             <Route path="*" element={<NotFound />} />
         </Routes>
+        </React.Suspense>
     );
 };
 

@@ -113,7 +113,7 @@ export function NotificationBell() {
         <>
             <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative">
+                    <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10">
                         <Bell className={cn("h-5 w-5", unreadCount > 0 && "text-primary animate-pulse")} />
                         {unreadCount > 0 && (
                             <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white animate-bounce" />

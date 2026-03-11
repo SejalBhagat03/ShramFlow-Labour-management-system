@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
@@ -134,20 +135,19 @@ const WorkDisputes = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t("conflictResolution")}</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">{t("conflictResolution")}</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                                <AlertTriangle className="h-8 w-8 text-destructive" />
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 md:h-6 md:w-6 text-destructive" />
                                 {t("workDisputes")}
                             </h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
                                 {t("workDisputesDesc")} • {t("ensuringFairWages")}
                             </p>
                         </div>
@@ -157,12 +157,12 @@ const WorkDisputes = () => {
                 {/* Main Content Sections */}
                 <div className="space-y-6">
                     {/* Search Section */}
-                    <div className="flex flex-col sm:flex-row gap-4 bg-card p-5 rounded-2xl border shadow-sm max-w-2xl">
+                    <div className="flex flex-col sm:flex-row gap-4 bg-card p-3 md:p-4 rounded-2xl border shadow-sm max-w-2xl">
                         <div className="relative flex-1">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder={t("searchLabourers")}
-                                className="pl-11 h-12 bg-muted/40 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl"
+                                className="pl-11 h-10 bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 rounded-xl text-xs"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -231,22 +231,22 @@ const WorkDisputes = () => {
                     </div>
 
                     <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
-                        <DialogContent>
-                            <DialogHeader>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
                                 <DialogTitle>{t("resolveDispute")}</DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription className="text-xs">
                                     {t("resolveDisputeDesc")}
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t("resolutionStatus")}</label>
+                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("resolutionStatus")}</Label>
                                     <Select
                                         value={resolutionStatus}
                                         onValueChange={setResolutionStatus}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-9 text-sm">
                                             <SelectValue placeholder={t("selectOutcome")} />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -256,28 +256,30 @@ const WorkDisputes = () => {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t("finalMeters")}</label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("finalMeters")}</Label>
                                     <Input
                                         type="number"
                                         value={finalMeters}
                                         onChange={(e) => setFinalMeters(e.target.value)}
+                                        className="h-9 text-sm"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t("resolutionNotes")}</label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">{t("resolutionNotes")}</Label>
                                     <Textarea
                                         placeholder={t("resolutionNotesPlaceholder")}
                                         value={resolutionNotes}
                                         onChange={(e) => setResolutionNotes(e.target.value)}
+                                        className="min-h-[80px] text-sm resize-none"
                                     />
                                 </div>
                             </div>
 
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setResolveDialogOpen(false)}>{t("cancel")}</Button>
-                                <Button onClick={handleResolve}>{t("confirmResolution")}</Button>
-                            </DialogFooter>
+                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
+                                <Button variant="outline" size="sm" onClick={() => setResolveDialogOpen(false)}>{t("cancel")}</Button>
+                                <Button size="sm" onClick={handleResolve}>{t("confirmResolution")}</Button>
+                            </div>
                         </DialogContent>
                     </Dialog>
                 </div>

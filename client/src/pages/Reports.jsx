@@ -56,25 +56,24 @@ const Reports = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 pt-8 pb-10 gradient-hero rounded-b-[3rem] shadow-sm border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Business Intelligence</span>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Business Intelligence</span>
                             </div>
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">{t("reports")}</h1>
-                            <p className="text-muted-foreground mt-2 text-lg font-medium">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("reports")}</h1>
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
                                 Analytics and productivity insights for your active projects
                             </p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-2">
                             <Select value={dateRange} onValueChange={setDateRange}>
-                                <SelectTrigger className="w-52 h-11 rounded-xl bg-background/50 border-2 backdrop-blur-sm font-bold">
+                                <SelectTrigger className="w-32 sm:w-40 h-9 rounded-xl bg-background/50 border backdrop-blur-sm text-xs font-semibold">
                                     <div className="flex items-center gap-2">
-                                        <Calendar className="h-4 w-4 text-primary" />
+                                        <Calendar className="h-3.5 w-3.5 text-primary" />
                                         <SelectValue />
                                     </div>
                                 </SelectTrigger>
@@ -84,9 +83,9 @@ const Reports = () => {
                                     <SelectItem value="quarter">This Quarter</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Button variant="outline" className="h-11 px-5 rounded-xl bg-background/50 border-2 backdrop-blur-sm font-bold">
-                                <Download className="h-4 w-4 mr-2" />
-                                {t("exportCSV")}
+                            <Button variant="outline" size="sm" className="h-9 px-3 rounded-xl bg-background/50 border backdrop-blur-sm text-xs font-semibold">
+                                <Download className="h-3.5 w-3.5 sm:mr-2" />
+                                <span className="hidden sm:inline">{t("exportCSV")}</span>
                             </Button>
                         </div>
                     </div>
@@ -95,46 +94,46 @@ const Reports = () => {
                 {/* Main Content Sections */}
                 <div className="space-y-6">
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-3">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                                    <Ruler className="h-4 w-4" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
+                                <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary">
+                                    <Ruler className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                 </div>
-                                <span className="text-xs font-bold uppercase tracking-widest">Total Meters</span>
+                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Total Meters</span>
                             </div>
-                            <p className="text-3xl font-black text-foreground tracking-tight">{totalMeters}m</p>
-                            <p className="text-xs text-muted-foreground mt-2">Across last 7 days</p>
+                            <p className="text-xl md:text-3xl font-black text-foreground tracking-tight">{totalMeters}m</p>
+                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Across last 7 days</p>
                         </div>
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-3">
-                                <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600">
-                                    <TrendingUp className="h-4 w-4" />
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
+                                <div className="p-1.5 md:p-2 bg-amber-500/10 rounded-lg text-amber-600">
+                                    <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                 </div>
-                                <span className="text-xs font-bold uppercase tracking-widest">Total Hours</span>
+                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Total Hours</span>
                             </div>
-                            <p className="text-3xl font-black text-foreground tracking-tight">{totalHours}h</p>
-                            <p className="text-xs text-muted-foreground mt-2">Active logging hours</p>
+                            <p className="text-xl md:text-3xl font-black text-foreground tracking-tight">{totalHours}h</p>
+                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Active logging hours</p>
                         </div>
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-3">
-                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
-                                    <Users className="h-4 w-4" />
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
+                                <div className="p-1.5 md:p-2 bg-blue-500/10 rounded-lg text-blue-600">
+                                    <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                 </div>
-                                <span className="text-xs font-bold uppercase tracking-widest">Labourers</span>
+                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Labourers</span>
                             </div>
-                            <p className="text-3xl font-black text-foreground tracking-tight">{stats.activeLabourers}</p>
-                            <p className="text-xs text-muted-foreground mt-2">of {stats.totalLabourers} total active</p>
+                            <p className="text-xl md:text-3xl font-black text-foreground tracking-tight">{stats.activeLabourers}</p>
+                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">of {stats.totalLabourers} active</p>
                         </div>
-                        <div className="bg-card rounded-2xl border p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-3">
-                                <div className="p-2 bg-green-500/10 rounded-lg text-green-600">
-                                    <span className="text-sm">₹</span>
+                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
+                                <div className="p-1.5 md:p-2 bg-green-500/10 rounded-lg text-green-600">
+                                    <span className="text-xs md:text-sm">₹</span>
                                 </div>
-                                <span className="text-xs font-bold uppercase tracking-widest">Earnings</span>
+                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Earnings</span>
                             </div>
-                            <p className="text-3xl font-black text-green-600 tracking-tight">₹{totalAmount.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground mt-2">Combined work value</p>
+                            <p className="text-xl md:text-3xl font-black text-green-600 tracking-tight">₹{totalAmount.toLocaleString()}</p>
+                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Work value</p>
                         </div>
                     </div>
 

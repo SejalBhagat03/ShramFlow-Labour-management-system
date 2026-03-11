@@ -1,3 +1,4 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,7 +14,7 @@ import { cn } from "@/lib/utils";
  * @param {string} [props.className] - Additional CSS classes.
  * @returns {JSX.Element} The StatCard component.
  */
-export const StatCard = ({ title, value, icon: Icon, trend, variant = "default", className }) => {
+export const StatCard = React.memo(({ title, value, icon: Icon, trend, variant = "default", className }) => {
     const variants = {
         default: "bg-card gradient-card border-border/50",
         primary: "gradient-primary border-primary/20",
@@ -38,7 +39,7 @@ export const StatCard = ({ title, value, icon: Icon, trend, variant = "default",
     return (
         <div
             className={cn(
-                "relative group rounded-2xl border p-5 shadow-card transition-all duration-300",
+                "relative group rounded-2xl border p-4 md:p-5 shadow-card transition-all duration-300",
                 "hover:shadow-lg hover:-translate-y-0.5",
                 "animate-fade-in overflow-hidden",
                 variants[variant],
@@ -48,17 +49,17 @@ export const StatCard = ({ title, value, icon: Icon, trend, variant = "default",
             {/* Subtle shine effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-            <div className="relative flex items-start justify-between gap-4">
-                <div className="space-y-3 flex-1">
+            <div className="relative flex items-start justify-between gap-3 md:gap-4">
+                <div className="space-y-2 md:space-y-3 flex-1">
                     <p
                         className={cn(
-                            "text-sm font-medium tracking-wide",
+                            "text-xs md:text-sm font-medium tracking-wide",
                             variant === "primary" ? "text-primary-foreground/80" : "text-muted-foreground",
                         )}
                     >
                         {title}
                     </p>
-                    <p className={cn("text-3xl font-bold tracking-tight", textVariants[variant])}>{value}</p>
+                    <p className={cn("text-2xl md:text-3xl font-bold tracking-tight", textVariants[variant])}>{value}</p>
                     {trend && (
                         <div
                             className={cn(
@@ -82,4 +83,4 @@ export const StatCard = ({ title, value, icon: Icon, trend, variant = "default",
             </div>
         </div>
     );
-};
+});

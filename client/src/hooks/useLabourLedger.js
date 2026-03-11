@@ -16,7 +16,7 @@ export const useLabourLedger = (labourId) => {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
-            const response = await fetch(`${API_BASE}/api/labour/${labourId}/ledger`, {
+            const response = await fetch(`${API_BASE}/api/labourers/${labourId}/ledger`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

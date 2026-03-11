@@ -61,30 +61,32 @@ const LabourLedger = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate(-1)}>
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Labour Ledger</h1>
-                            <p className="text-muted-foreground">Detailed financial history for {ledger?.name || '...'}</p>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigate(-1)}>
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                            <div>
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">Labour Ledger</h1>
+                                <p className="text-muted-foreground mt-1 text-xs sm:text-sm font-medium">Detailed financial history for {ledger?.name || '...'}</p>
+                            </div>
                         </div>
+                        <Button
+                            size="sm"
+                            className="gradient-primary h-9 px-4 rounded-xl font-bold shadow-glow text-xs"
+                            onClick={handleDownload}
+                            disabled={isLoading || !ledger}
+                        >
+                            <FileDown className="h-3.5 w-3.5 mr-2" />
+                            Download PDF
+                        </Button>
                     </div>
-                    <Button
-                        className="gradient-primary h-11 px-6 rounded-xl font-bold shadow-glow"
-                        onClick={handleDownload}
-                        disabled={isLoading || !ledger}
-                    >
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Download PDF
-                    </Button>
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                     {isLoading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                             <Skeleton key={i} className="h-32 rounded-2xl" />

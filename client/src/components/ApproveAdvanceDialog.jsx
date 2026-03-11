@@ -70,19 +70,19 @@ export function ApproveAdvanceDialog({ open, onOpenChange, request, onSuccess })
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
-                <DialogHeader>
+                <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
                     <DialogTitle>Approve Advance Request</DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-xs">
                         Confirm approval for <strong>{request.labourer?.name}</strong>.
                         This will automatically record a payment of <strong>₹{request.amount}</strong>.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label>Payment Method</Label>
+                <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Payment Method</Label>
                         <Select value={method} onValueChange={setMethod}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-9 text-sm">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -99,19 +99,19 @@ export function ApproveAdvanceDialog({ open, onOpenChange, request, onSuccess })
                         </Select>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Payment Date</Label>
-                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Payment Date</Label>
+                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-9 text-sm" />
                     </div>
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleApprove} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
+                <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
+                    <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button size="sm" onClick={handleApprove} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Confirm & Pay
                     </Button>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
     DialogContent,
@@ -64,6 +65,7 @@ const taskTypes = [
 const WorkEntries = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const { workEntries, isLoading, createWorkEntry, approveWorkEntry, approveBulkWorkEntries, flagWorkEntry } = useWorkEntries();
     const { labourers } = useLabourers();
     const [search, setSearch] = useState('');
@@ -493,21 +495,36 @@ const WorkEntries = () => {
                                                     navigator.geolocation.getCurrentPosition(
                                                         (position) => {
                                                             const { latitude, longitude } = position.coords;
+                                                            const formattedLocation = `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`;
+                                                            
                                                             setFormData(prev => ({
                                                                 ...prev,
                                                                 latitude,
                                                                 longitude,
-                                                                location: prev.location || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+                                                                location: formattedLocation
                                                             }));
-                                                            alert("Location captured!");
+                                                            toast({
+                                                                title: "Location Captured",
+                                                                description: "Coordinates added to record.",
+                                                            });
                                                         },
                                                         (error) => {
-                                                            if (import.meta.env.DEV) console.error("Error capturing location:", error);
-                                                            alert("Could not capture location.");
+                                                            console.error("Location error:", error);
+                                                            let msg = "Could not capture location.";
+                                                            if (error.code === 1) msg = "Location permission denied.";
+                                                            toast({
+                                                                title: "Location Error",
+                                                                description: msg,
+                                                                variant: "destructive"
+                                                            });
                                                         }
                                                     );
                                                 } else {
-                                                    alert("Geolocation is not supported by this browser.");
+                                                    toast({
+                                                        title: "Not Supported",
+                                                        description: "Geolocation is not supported by this browser.",
+                                                        variant: "destructive"
+                                                    });
                                                 }
                                             }}
                                             title="Capture Current Location"

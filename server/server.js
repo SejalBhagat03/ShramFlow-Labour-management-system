@@ -30,6 +30,11 @@ app.get('/', (req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
+// Prevent premature exit
+setInterval(() => {
+    if (process.env.NODE_ENV === 'development') console.log('[Server] Heartbeat');
+}, 300000);
+
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`[Server] ShramFlow backend started successfully on port ${PORT}`);
 });

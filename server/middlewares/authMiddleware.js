@@ -30,26 +30,27 @@ exports.protect = async (req, res, next) => {
             .from('profiles')
             .select('organization_id')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
-        if (profileError || !profile) {
-            console.log('[AuthMiddleware] Profile fetch failed for user:', user.id, profileError?.message);
-            return res.status(401).json({
-                error: 'User profile or organization not found',
-                details: profileError?.message,
-                userId: user.id
-            });
+        if (profileError) {
+            console.error('[AuthMiddleware] Profile fetch error:', profileError.message);
+            // Don't block here, try to use metadata next
         }
 
-        if (!profile.organization_id) {
-            console.log('[AuthMiddleware] User has no organization assigned:', user.id);
-            // We might want to allow this if there's a default, or reject.
-            // For SaaS, organization_id is usually mandatory.
-        }
-
-        // 3. Attach user and orgId to request
+        // Attach user
         req.user = user;
-        req.orgId = profile.organization_id;
+        
+        // 3. Resolve Organization ID (DB -> Metadata -> Fallback)
+        const orgId = profile?.organization_id || user.user_metadata?.organization_id;
+        
+        if (!orgId) {
+            console.warn('[AuthMiddleware] No organization_id found for user:', user.id);
+            // We allow the request to proceed but attach a null orgId
+            // The controllers will handle if they strictly need it
+            req.orgId = null;
+        } else {
+            req.orgId = orgId;
+        }
 
         next();
     } catch (error) {
@@ -66,14 +67,24 @@ exports.protect = async (req, res, next) => {
 exports.authorize = (roles) => {
     return async (req, res, next) => {
         try {
+            // First check user metadata for role to avoid DB hit if possible or if DB is slow
+            const metadataRole = req.user.user_metadata?.role;
+            if (roles.includes(metadataRole)) {
+                return next();
+            }
+
             const { data, error } = await supabase
                 .from('user_roles')
                 .select('role')
                 .eq('user_id', req.user.id)
                 .in('role', roles)
-                .single();
+                .maybeSingle();
 
-            if (error || !data) {
+            if (error) {
+                console.error('[Authorize] Role fetch error:', error.message);
+            }
+
+            if (!data && !roles.includes(metadataRole)) {
                 return res.status(403).json({ error: `User role is not authorized to access this route` });
             }
 

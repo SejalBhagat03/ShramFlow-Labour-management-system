@@ -4,6 +4,10 @@ const { logAudit } = require('../utils/logger');
 
 exports.getAllLabourers = async (req, res, next) => {
     try {
+        if (!req.orgId || req.orgId === 'null') {
+            return res.status(403).json({ error: 'Invalid organization context' });
+        }
+
         const { data, error } = await supabase
             .from('labourers')
             .select('*')

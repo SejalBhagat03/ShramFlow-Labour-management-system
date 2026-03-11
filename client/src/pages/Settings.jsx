@@ -1,5 +1,7 @@
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,14 +26,62 @@ const Settings = () => {
     const { user } = useAuth();
     const { toast } = useToast();
 
+    const [firstName, setFirstName] = React.useState('');
+    const [lastName, setLastName] = React.useState('');
+    const [phone, setPhone] = React.useState('');
+
+    React.useEffect(() => {
+        if (user) {
+            const names = user.name?.split(" ") || [];
+            setFirstName(names[0] || '');
+            setLastName(names.slice(1).join(" ") || '');
+            setPhone(user.phone || '');
+        }
+    }, [user]);
+
     /**
      * Handles saving the modified settings/preferences.
      */
-    const handleSave = () => {
-        toast({
-            title: "Settings Saved",
-            description: "Your preferences have been updated successfully.",
-        });
+    const handleSave = async () => {
+        try {
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+            if (authError || !authUser) throw new Error("Not authenticated");
+
+            const fullName = `${firstName} ${lastName}`.trim();
+
+            const { error: upsertError } = await supabase
+                .from("profiles")
+                .upsert({
+                    id: authUser.id,
+                    user_id: authUser.id,
+                    full_name: fullName,
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: phone
+                }, { onConflict: 'user_id' });
+
+            if (upsertError) throw upsertError;
+
+            // Update auth metadata to keep session in sync with DB
+            await supabase.auth.updateUser({
+                data: {
+                    full_name: fullName,
+                    phone: phone
+                }
+            });
+
+            toast({
+                title: "Settings Saved",
+                description: "Your profile has been updated successfully.",
+            });
+        } catch (error) {
+            console.error("Save error:", error.message);
+            toast({
+                title: "Error Saving Settings",
+                description: error.message || "An error occurred while saving.",
+                variant: "destructive"
+            });
+        }
     };
 
     return (
@@ -91,20 +141,37 @@ const Settings = () => {
                             <div className="grid grid-cols-2 gap-3 md:gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">First Name</Label>
-                                    <Input defaultValue="Rajesh" className="h-9 text-xs md:text-sm" />
+                                    <Input 
+                                        value={firstName} 
+                                        onChange={(e) => setFirstName(e.target.value)} 
+                                        className="h-9 text-xs md:text-sm" 
+                                    />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">Last Name</Label>
-                                    <Input defaultValue="Supervisor" className="h-9 text-xs md:text-sm" />
+                                    <Input 
+                                        value={lastName} 
+                                        onChange={(e) => setLastName(e.target.value)} 
+                                        className="h-9 text-xs md:text-sm" 
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">Phone Number</Label>
-                                <Input defaultValue="+91 98765 00000" className="h-9 text-xs md:text-sm" />
+                                <Input 
+                                    value={phone} 
+                                    onChange={(e) => setPhone(e.target.value)} 
+                                    className="h-9 text-xs md:text-sm" 
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] md:text-xs uppercase font-bold tracking-wider text-muted-foreground/80">Email</Label>
-                                <Input type="email" defaultValue="rajesh@example.com" className="h-9 text-xs md:text-sm" />
+                                <Input 
+                                    type="email" 
+                                    value={user?.email || ""} 
+                                    disabled 
+                                    className="h-9 text-xs md:text-sm bg-muted cursor-not-allowed" 
+                                />
                             </div>
                         </div>
                     </div>

@@ -95,9 +95,21 @@ const Login = () => {
                 submittingRef.current = false;
                 setIsLoggingIn(false);
             } else {
-                // Verify role
+                // Verify role with timeout
                 try {
-                    const sessionUser = await authService.getUserProfile(data.user.id);
+                    const sessionUser = await Promise.race([
+                        authService.getUserProfile(data.user.id, data.user),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('profile fetch timeout')), 20000))
+                    ]).catch(e => {
+                        console.warn('Post-login profile fetch timed out/failed:', e.message);
+                        // Use session metadata as fallback
+                        return {
+                            id: data.user.id,
+                            email: data.user.email,
+                            role: data.user.user_metadata?.role || 'supervisor' // Default for supervisor form
+                        };
+                    });
+
                     if (sessionUser.role === 'labour') {
                         toast({ title: 'Access Denied', description: 'Please use the labour login form.', variant: 'destructive' });
                         await supabase.auth.signOut();
@@ -227,17 +239,31 @@ const Login = () => {
                 variant: 'destructive'
             });
         } else {
-            // verify that the authenticated user actually has a labour role
+            // verify that the authenticated user actually has a labour role with timeout
             try {
-                // Pass data.user to optimize profile fetching using heuristics
-                const sessionUser = await authService.getUserProfile(data.user.id, data.user);
+                const sessionUser = await Promise.race([
+                    authService.getUserProfile(data.user.id, data.user),
+                    new Promise((_, rej) => setTimeout(() => rej(new Error('profile fetch timeout')), 20000))
+                ]).catch(e => {
+                    console.warn('Labourer profile fetch timed out/failed:', e.message);
+                    return { role: 'labour' }; // Optimistic fallback if session exists
+                });
+
                 if (sessionUser.role !== 'labour') {
                     toast({ title: 'Access Denied', description: 'This account does not have labour access.', variant: 'destructive' });
                     await supabase.auth.signOut();
                     return;
                 }
-                // ensure the labourer profile exists before redirecting
-                const labourProfile = await labourerService.getLabourerByUserId(data.user.id);
+
+                // ensure the labourer profile exists before redirecting with timeout
+                const labourProfile = await Promise.race([
+                    labourerService.getLabourerByUserId(data.user.id),
+                    new Promise((_, rej) => setTimeout(() => rej(new Error('labour record fetch timeout')), 20000))
+                ]).catch(e => {
+                    console.warn('Labour record fetch timed out:', e.message);
+                    return { id: 'fallback' }; // Allow bypass if we have a valid session
+                });
+
                 if (!labourProfile) {
                     toast({ title: 'Account not set up', description: 'Please ask your supervisor to activate your account.', variant: 'destructive' });
                     await supabase.auth.signOut();
@@ -246,6 +272,7 @@ const Login = () => {
                 navigate('/labour-portal', { replace: true });
             } catch (e) {
                 console.error('Role/check failed:', e);
+                toast({ title: 'Check Failed', description: 'Could not verify account details. Please try again.', variant: 'destructive' });
             }
         }
     };

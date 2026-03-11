@@ -28,14 +28,14 @@ export const useWorkEntries = (labourerId) => {
         mutationFn: async (formData) => {
             return await workService.createWorkEntry({
                 labourer_id: formData.labourer_id,
-                transaction_date: formData.date,
+                date: formData.date,
                 task_type: formData.task_type,
                 meters: formData.meters || null,
                 hours: formData.hours || null,
                 amount: formData.amount,
                 location: formData.location || null,
                 description: formData.description || null,
-                status: 'submitted'
+                status: 'pending'
             });
         },
 

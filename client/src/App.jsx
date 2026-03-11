@@ -15,10 +15,11 @@ import { Button } from "@/components/ui/button";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
-const Login = React.lazy(() => import("./pages/Login"));
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
-const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+// Keeping other specialized pages lazy
 const Labourers = React.lazy(() => import("./pages/Labourers"));
 const LabourLedger = React.lazy(() => import("./pages/LabourLedger"));
 const WorkEntries = React.lazy(() => import("./pages/WorkEntries"));
@@ -49,23 +50,32 @@ const LoadingScreen = () => {
     const [showReload, setShowReload] = React.useState(false);
 
     React.useEffect(() => {
-        const timer = setTimeout(() => setShowReload(true), 5000);
+        const timer = setTimeout(() => setShowReload(true), 8000);
         return () => clearTimeout(timer);
     }, []);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <div className="mb-8 relative">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse-soft" />
+                <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Connecting to ShramFlow</h2>
+            <p className="text-muted-foreground text-sm max-w-[250px]">
+                Checking secure session and preparing your workspace...
+            </p>
             {showReload && (
-                <div className="animate-fade-in">
-                    <p className="text-muted-foreground mb-4">Taking longer than expected...</p>
-                    <Button
-                        onClick={() => window.location.reload()}
-                        variant="outline"
-                        size="sm"
-                    >
-                        Reload Page
-                    </Button>
+                <div className="animate-fade-in mt-8 space-y-4">
+                    <p className="text-amber-600 text-[10px] uppercase font-bold tracking-widest">Network is slow</p>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={() => window.location.reload()}
+                            variant="outline"
+                            size="sm"
+                        >
+                            Retry Now
+                        </Button>
+                    </div>
                 </div>
             )}
         </div>
@@ -124,6 +134,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     // Role not allowed
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+        // If it's just a fallback role from metadata, wait before redirecting
+        // This prevents the flickering on refresh when DB is slow
+        if (user.isFallback) {
+            return <LoadingScreen />;
+        }
+        
         const redirectPath = user.role === "labour" ? "/labour-portal" : "/dashboard";
         return <Navigate to={redirectPath} replace />;
     }
@@ -147,7 +163,11 @@ const AppRoutes = () => {
                 path="/"
                 element={
                     isAuthenticated ? (
-                        <Navigate to={user?.role === 'labour' ? '/labour-portal' : '/dashboard'} replace />
+                        user?.isFallback ? (
+                            <LoadingScreen />
+                        ) : (
+                            <Navigate to={user?.role === 'labour' ? '/labour-portal' : '/dashboard'} replace />
+                        )
                     ) : (
                         <Login />
                     )

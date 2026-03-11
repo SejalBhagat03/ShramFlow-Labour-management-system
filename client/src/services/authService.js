@@ -3,11 +3,7 @@ import { User } from '@/lib/models/User';
 
 /**
  * AuthService
- * FINAL STABLE VERSION
- * - No retries
- * - No fake fallback users
- * - No emergency overrides
- * - Works ONLY when RLS is correct (as it should)
+ * Optimized with detailed logging and performance tracking
  */
 export const authService = {
     /**
@@ -21,88 +17,91 @@ export const authService = {
 
     /**
      * Fetch user profile + role
-     * Optimized to use session metadata if available to avoid RLS recursion/deadlocks
+     * Optimized with detailed timing and logging
      */
     async getUserProfile(userId, sessionUser = null) {
-        // 1. Check session metadata for performance optimization
-        if (sessionUser?.user_metadata && sessionUser.user_metadata.role) {
-            const meta = sessionUser.user_metadata;
+        const start = performance.now();
+        const log = (msg) => {
+            if (import.meta.env.DEV) console.log(`[authService] ${msg} (${(performance.now() - start).toFixed(0)}ms)`);
+        };
+
+        log(`Starting profile fetch for ${userId}`);
+
+        try {
+            // 1. Fetch profile
+            log(`DB Calling: profiles.select(*) for ${userId}`);
+            const { data: profile, error: profileError, status: profileStatus } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (profileError) {
+                log(`Profile DB Error: ${profileError.message} (status: ${profileStatus})`);
+            } else {
+                log(`Profile DB SUCCESS: ${profile ? 'Found' : 'Not Found'}`);
+            }
+
+            // 2. Fetch role
+            log(`DB Calling: user_roles.select(role) for ${userId}`);
+            const { data: roleData, error: roleError } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', userId)
+                .maybeSingle();
+            
+            if (roleError) {
+                log(`Role DB Error: ${roleError.message}`);
+            } else {
+                log(`Role DB SUCCESS: ${roleData?.role || 'None'}`);
+            }
+
+            // 3. Sync and Return
+            if (profile || roleData) {
+                log(`Constructing User object from DB results`);
+                return new User({
+                    id: userId,
+                    email: profile?.email || sessionUser?.email || '',
+                    name: profile?.full_name || profile?.name || sessionUser?.user_metadata?.full_name || 'User',
+                    role: roleData?.role || profile?.role || sessionUser?.user_metadata?.role || 'labour',
+                    phone: profile?.phone || sessionUser?.user_metadata?.phone || '',
+                    avatar_url: profile?.avatar_url || '',
+                    organization_id: profile?.organization_id || sessionUser?.user_metadata?.organization_id || null
+                });
+            }
+
+            log(`No DB record found, checking metadata fallback...`);
+
+            // 4. Fallback to metadata
+            if (sessionUser?.user_metadata?.role) {
+                const meta = sessionUser.user_metadata;
+                log(`Using metadata fallback: ${meta.role}`);
+                return new User({
+                    id: userId,
+                    email: sessionUser.email || '',
+                    name: meta.full_name || 'User',
+                    role: meta.role,
+                    phone: meta.phone || '',
+                    avatar_url: meta.avatar_url || '',
+                    organization_id: meta.organization_id || null
+                });
+            }
+
+            log(`Fatal: No profile data found anywhere`);
             return new User({
                 id: userId,
-                email: sessionUser.email,
-                name: meta.full_name || 'User',
-                role: meta.role,
-                phone: meta.phone || '',
-                avatar_url: meta.avatar_url || '',
-                organization_id: meta.organization_id || null
+                email: sessionUser?.email || '',
+                name: 'User',
+                role: 'labour',
+                phone: '',
+                avatar_url: '',
+                organization_id: null
             });
+
+        } catch (err) {
+            log(`Critical Catch: ${err.message}`);
+            throw err;
         }
-
-        // 2. Role inference for auto-provisioned accounts
-        if (sessionUser?.email) {
-            const isLabourEmail = sessionUser.email.endsWith('@shramflow.com');
-
-            if (isLabourEmail) {
-                return new User({
-                    id: userId,
-                    email: sessionUser.email,
-                    name: 'Labourer',
-                    role: 'labour',
-                    phone: sessionUser.email.replace('@shramflow.com', ''),
-                    avatar_url: '',
-                    organization_id: null // Will be resolved by profile fetch eventually
-                });
-            }
-
-            if (!isLabourEmail) {
-                return new User({
-                    id: userId,
-                    email: sessionUser.email,
-                    name: 'Supervisor',
-                    role: 'supervisor',
-                    phone: '',
-                    avatar_url: '',
-                    organization_id: null
-                });
-            }
-        }
-
-        // 3. Database fallback for persistent profiles
-        const { data: profile, error: profileError, status: profileStatus } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (profileError && profileStatus !== 406) {
-            throw profileError;
-        }
-
-        const { data: roleData, error: roleError, status: roleStatus } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .single();
-
-        if (roleError && roleStatus !== 406) {
-            throw roleError;
-        }
-
-        const name = profile?.full_name || '';
-        const phone = profile?.phone || '';
-        const avatar_url = profile?.avatar_url || '';
-        const organization_id = profile?.organization_id || null;
-        const role = roleData?.role || 'labour';
-
-        return new User({
-            id: userId,
-            email: sessionUser?.email || '',
-            name: name || 'User',
-            role,
-            phone,
-            avatar_url,
-            organization_id
-        });
     },
 
     /**

@@ -6,19 +6,19 @@ import { useProjectPulse } from '@/hooks/useProjectPulse';
 import { useActivities } from '@/hooks/useActivities';
 import { ActivityFeed } from '@/components/ActivityFeed';
 import { motion } from 'framer-motion';
-import { 
-    Zap, 
-    ArrowLeft, 
-    Users, 
-    Calendar, 
-    MapPin, 
-    IndianRupee, 
-    TrendingUp, 
+import {
+    Zap,
+    ArrowLeft,
+    Users,
+    Calendar,
+    MapPin,
+    IndianRupee,
+    TrendingUp,
     Plus,
     Clock,
     AlertCircle,
     Target,
-    Settings
+    Settings,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,10 +34,7 @@ const ProjectDetails = () => {
     const navigate = useNavigate();
     const { setFocus } = useFocusProject();
 
-    // Use Pulse hook to get all projects (we filter for ours to get real-time stats)
     const { data: allProjects = [], isLoading: projectsLoading } = useProjectPulse();
-    
-    // Get Activities filtered for this project (we can pass a filter param later)
     const { activities = [], isLoading: activitiesLoading } = useActivities(20);
 
     const project = useMemo(() => {
@@ -87,9 +84,9 @@ const ProjectDetails = () => {
                 {/* Header Navigation */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-4">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             className="rounded-full h-10 w-10 bg-background/50 backdrop-blur-sm border"
                             onClick={() => navigate('/projects')}
                         >
@@ -105,7 +102,7 @@ const ProjectDetails = () => {
                     </div>
 
                     <div className="flex gap-2">
-                        <Button 
+                        <Button
                             className="rounded-xl gradient-primary shadow-glow font-bold"
                             onClick={() => {
                                 setFocus(project.id);
@@ -123,30 +120,30 @@ const ProjectDetails = () => {
                     <div className="lg:col-span-2 space-y-6 md:space-y-8">
                         {/* Summary Stats */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard 
-                                title="On-Site Today" 
-                                value={project.active_today || 0} 
-                                icon={Users} 
-                                className="glass-strong border-none" 
+                            <StatCard
+                                title="On-Site Today"
+                                value={project.active_today || 0}
+                                icon={Users}
+                                className="glass-strong border-none"
                             />
-                            <StatCard 
-                                title="Work Progress" 
-                                value={`${(project.progress_percent || 0).toFixed(1)}%`} 
-                                icon={Target} 
+                            <StatCard
+                                title="Work Progress"
+                                value={`${(project.progress_percent || 0).toFixed(1)}%`}
+                                icon={Target}
                                 variant={project.progress_percent >= 100 ? "success" : "default"}
-                                className="glass-strong border-none" 
+                                className="glass-strong border-none"
                             />
-                            <StatCard 
-                                title="Efficiency" 
-                                value={`${((project.total_work_done || 0) / (Math.max(1, Math.ceil((new Date() - new Date(project.start_date)) / (1000*60*60*24))))).toFixed(1)} u/d`} 
-                                icon={TrendingUp} 
-                                className="glass-strong border-none" 
+                            <StatCard
+                                title="Efficiency"
+                                value={`${((project.total_work_done || 0) / (Math.max(1, Math.ceil((new Date() - new Date(project.start_date)) / (1000 * 60 * 60 * 24))))).toFixed(1)} u/d`}
+                                icon={TrendingUp}
+                                className="glass-strong border-none"
                             />
-                            <StatCard 
-                                title="Last Entry" 
-                                value={project.last_entry_date ? new Date(project.last_entry_date).toLocaleDateString() : 'N/A'} 
-                                icon={Clock} 
-                                className="glass-strong border-none" 
+                            <StatCard
+                                title="Last Entry"
+                                value={project.last_entry_date ? new Date(project.last_entry_date).toLocaleDateString() : 'N/A'}
+                                icon={Clock}
+                                className="glass-strong border-none"
                             />
                         </div>
 
@@ -185,17 +182,18 @@ const ProjectDetails = () => {
                                             </div>
                                         </div>
                                     </div>
+
                                     <div className="space-y-6">
                                         <div className="space-y-4">
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-center px-1">
                                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest underline decoration-primary/30 underline-offset-4">Work Progress</p>
                                                     <span className="text-sm font-bold">
-                                                        {project.total_work_done || 0} / {project.total_work_target || 0} {project.rate_type === 'per_meter' ? 'm' : 'days'}
+                                                        {project.total_work_done || 0} {' / '} {project.total_work_target || 0} {project.rate_type === 'per_meter' ? 'm' : 'days'}
                                                     </span>
                                                 </div>
-                                                <Progress 
-                                                    value={Math.min(project.progress_percent || 0, 100)} 
+                                                <Progress
+                                                    value={Math.min(project.progress_percent || 0, 100)}
                                                     className="h-3 md:h-4 bg-muted/30"
                                                     indicatorClassName={cn(
                                                         "transition-all duration-1000",
@@ -208,11 +206,11 @@ const ProjectDetails = () => {
                                                 <div className="flex justify-between items-center px-1">
                                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest underline decoration-primary/30 underline-offset-4">Budget Utilization</p>
                                                     <span className={cn("text-sm font-bold", isOverBudget ? "text-destructive" : "text-primary")}>
-                                                        ₹{project.budget_used?.toLocaleString() || 0} / ₹{project.budget?.toLocaleString() || '∞'}
+                                                        ₹{project.budget_used?.toLocaleString() || 0} {' / '} ₹{project.budget?.toLocaleString() || '∞'}
                                                     </span>
                                                 </div>
-                                                <Progress 
-                                                    value={Math.min(budgetStatus * 100, 100)} 
+                                                <Progress
+                                                    value={Math.min(budgetStatus * 100, 100)}
                                                     className="h-3 md:h-4 bg-muted/30"
                                                     indicatorClassName={cn(
                                                         "transition-all duration-1000",
@@ -246,7 +244,7 @@ const ProjectDetails = () => {
                                 </div>
                                 <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                             </div>
-                            
+
                             <div className="flex-1 overflow-y-auto pr-2 scrollbar-none">
                                 {activitiesLoading ? (
                                     <div className="space-y-4">
@@ -260,12 +258,12 @@ const ProjectDetails = () => {
                                         <p className="text-sm">No activity recorded for this site yet.</p>
                                     </div>
                                 ) : (
-                                    <ActivityFeed 
+                                    <ActivityFeed
                                         activities={projectActivities.map(a => ({
                                             ...a,
                                             messageHindi: a.message_hindi || a.message,
                                             timestamp: a.created_at
-                                        }))} 
+                                        }))}
                                     />
                                 )}
                             </div>

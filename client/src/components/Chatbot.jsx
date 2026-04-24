@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Bot, User, Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "shramflow_chat_history";
@@ -33,6 +34,7 @@ const getEnglishVoice = () => {
 };
 
 export const Chatbot = () => {
+    const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
@@ -265,17 +267,26 @@ export const Chatbot = () => {
                 .concat(userMessage)
                 .map((m) => ({ role: m.role, content: m.content }));
 
-            const { data, error } = await supabase.functions.invoke("chat", {
-                body: {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({
                     messages: apiMessages,
                     userRole: user?.role || "labour",
                     language: detectedLang,
-                },
+                })
             });
 
-            if (error) {
-                throw new Error(error.message);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to communicate with chat service");
             }
+
+            const data = await response.json();
 
             const assistantContent = data.message || t("chatError");
             const assistantMessage = {
@@ -326,13 +337,25 @@ export const Chatbot = () => {
     };
 
     // Replay last assistant message
-    const replayMessage = (content) => {
-        if (isSpeaking) {
-            stopSpeaking();
-        } else {
-            speakText(content);
+    // Handle chips
+    const handleQuickAction = (action) => {
+        if (action.action === 'send') {
+            setInputValue(action.text);
+            // We can't call sendMessage directly easily without a small refactor or using a timeout
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 10);
+        } else if (action.action === 'nav') {
+            navigate(action.url);
+            setIsOpen(false);
         }
     };
+
+    const quickActions = [
+        { id: 1, label: "Add Work", text: "How to add new work entry?", action: 'send' },
+        { id: 2, label: "Payments", text: "Show me recent payments", action: 'send' },
+        { id: 3, label: "Recycle Bin", url: "/recycle-bin", action: 'nav' },
+    ];
 
     return (
         <>
@@ -401,14 +424,17 @@ export const Chatbot = () => {
                 {/* Messages */}
                 <ScrollArea ref={scrollAreaRef} className="h-[380px] p-4">
                     <div className="space-y-4">
+                        <AnimatePresence>
                         {messages.map((message) => (
-                            <div
+                            <motion.div
                                 key={message.id}
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
                                 className={cn("flex gap-2", message.role === "user" ? "flex-row-reverse" : "flex-row")}
                             >
                                 <div
                                     className={cn(
-                                        "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
+                                        "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm",
                                         message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                                     )}
                                 >
@@ -417,10 +443,10 @@ export const Chatbot = () => {
                                 <div className="flex flex-col gap-1 max-w-[75%]">
                                     <div
                                         className={cn(
-                                            "rounded-2xl px-4 py-3 text-[15px] leading-relaxed",
+                                            "rounded-2xl px-4 py-3 text-[14px] md:text-[15px] leading-relaxed shadow-sm",
                                             message.role === "user"
                                                 ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                                : "bg-muted text-foreground rounded-tl-sm",
+                                                : "bg-muted text-foreground rounded-tl-sm border border-border/50",
                                         )}
                                     >
                                         {message.content}
@@ -429,27 +455,45 @@ export const Chatbot = () => {
                                     {message.role === "assistant" && synthSupported && message.id !== "greeting" && (
                                         <button
                                             onClick={() => replayMessage(message.content)}
-                                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors self-start ml-1"
+                                            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors self-start ml-1"
                                         >
                                             <Volume2 className="h-3 w-3" />
                                             {isSpeaking ? "Stop" : "Play"}
                                         </button>
                                     )}
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
+                        </AnimatePresence>
                         {isLoading && (
-                            <div className="flex gap-2">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex gap-2"
+                            >
                                 <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
                                     <Bot className="h-4 w-4 text-muted-foreground" />
                                 </div>
                                 <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">
                                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
                     </div>
                 </ScrollArea>
+
+                {/* Quick Actions */}
+                <div className="px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
+                    {quickActions.map(action => (
+                        <button
+                            key={action.id}
+                            onClick={() => handleQuickAction(action)}
+                            className="whitespace-nowrap px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] md:text-xs font-semibold hover:bg-primary hover:text-primary-foreground transition-all border border-primary/20 shadow-sm"
+                        >
+                            {action.label}
+                        </button>
+                    ))}
+                </div>
 
                 {/* Input */}
                 <div className="p-4 border-t">

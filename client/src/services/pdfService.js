@@ -38,15 +38,19 @@ export const pdfService = {
 
         doc.setFontSize(10);
         doc.text('Total Earned', 35, 75, { align: 'center' });
-        doc.text('Total Paid', 105, 75, { align: 'center' });
-        doc.text('Balance Pending', 170, 75, { align: 'center' });
+        doc.text('Total Paid', 85, 75, { align: 'center' });
+        doc.text('Total Deducted', 135, 75, { align: 'center' });
+        doc.text('Balance Pending', 180, 75, { align: 'center' });
 
-        doc.setFontSize(14);
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text(`Rs. ${totalEarned.toLocaleString()}`, 35, 83, { align: 'center' });
-        doc.text(`Rs. ${totalPaid.toLocaleString()}`, 105, 83, { align: 'center' });
+        doc.text(`Rs. ${totalPaid.toLocaleString()}`, 85, 83, { align: 'center' });
+        doc.setTextColor(220, 38, 38);
+        doc.text(`Rs. ${data.totalDeductions ? data.totalDeductions.toLocaleString() : 0}`, 135, 83, { align: 'center' });
+        
         doc.setTextColor(balance >= 0 ? [22, 163, 74] : [220, 38, 38]);
-        doc.text(`Rs. ${balance.toLocaleString()}`, 170, 83, { align: 'center' });
+        doc.text(`Rs. ${balance.toLocaleString()}`, 180, 83, { align: 'center' });
         doc.setTextColor(0);
         doc.setFont('helvetica', 'normal');
 
@@ -57,7 +61,7 @@ export const pdfService = {
         const workTableData = entries.map(entry => [
             entry.date,
             entry.task_type,
-            `${entry.meters || 0}m`,
+            `${entry.meters || entry.hours || 0}`,
             `Rs. ${entry.amount.toLocaleString()}`,
             entry.status.toUpperCase()
         ]);
@@ -71,20 +75,24 @@ export const pdfService = {
             margin: { left: 14, right: 14 }
         });
 
-        // 5. Payment History Table
+        // 5. Payment, Advance & Deduction History Table
         const finalY = doc.lastAutoTable.finalY + 15;
-        doc.text('Payment & Advance History', 14, finalY);
+        doc.text('Transactions (Payments & Deductions)', 14, finalY);
 
-        const paymentTableData = payments.map(p => [
-            p.transaction_date,
-            p.method.toUpperCase(),
-            `Rs. ${p.amount.toLocaleString()}`,
-            'PAID'
-        ]);
+        const paymentTableData = payments.map(p => {
+            const isDeduction = p.payment_type === 'deduction';
+            return [
+                p.transaction_date || p.date,
+                p.payment_type ? p.payment_type.toUpperCase() : 'PAYMENT',
+                p.method ? p.method.toUpperCase() : '-',
+                isDeduction ? `- Rs. ${p.amount.toLocaleString()}` : `Rs. ${p.amount.toLocaleString()}`,
+                p.deduction_reason || p.notes || '-'
+            ];
+        });
 
         doc.autoTable({
             startY: finalY + 5,
-            head: [['Date', 'Method', 'Amount', 'Status']],
+            head: [['Date', 'Type', 'Method', 'Amount', 'Notes']],
             body: paymentTableData,
             theme: 'grid',
             headStyles: { fillColor: [59, 130, 246] }, // Blue for payments

@@ -74,6 +74,7 @@ export default {
             },
             fontFamily: {
                 sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+                serif: ['Playfair Display', 'serif'],
             },
             keyframes: {
                 "accordion-down": {

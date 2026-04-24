@@ -13,15 +13,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, History, User, Activity, Clock } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { API_BASE } from "@/lib/api";
 
 
 const AuditLog = () => {
     const { t } = useTranslation();
+    const { user } = useAuth();
 
     const { data: logs, isLoading } = useQuery({
-        queryKey: ['audit_logs'],
+        queryKey: ['audit_logs', user?.organization_id],
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
@@ -42,7 +44,8 @@ const AuditLog = () => {
                 console.error('[AuditLog] Fetch error:', error);
                 throw error;
             }
-        }
+        },
+        enabled: !!user && !!user.organization_id && user.organization_id !== 'null' && user.organization_id !== 'undefined'
     });
 
     const getActionBadge = (action) => {

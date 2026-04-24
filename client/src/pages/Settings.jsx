@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,8 @@ const Settings = () => {
                     full_name: fullName,
                     first_name: firstName,
                     last_name: lastName,
-                    phone: phone
+                    phone: phone,
+                    organization_id: user.organization_id
                 }, { onConflict: 'user_id' });
 
             if (upsertError) throw upsertError;
@@ -215,13 +216,7 @@ const Settings = () => {
                                 </div>
                                 <Switch defaultChecked className="scale-75 md:scale-100" />
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-semibold text-foreground text-xs md:text-sm">Flagged Entry Alerts</p>
-                                    <p className="text-[10px] md:text-xs text-muted-foreground">Get notified when entries are flagged</p>
-                                </div>
-                                <Switch defaultChecked className="scale-75 md:scale-100" />
-                            </div>
+
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-semibold text-foreground text-xs md:text-sm">Payment Reminders</p>
@@ -239,42 +234,7 @@ const Settings = () => {
                         </div>
                     </div>
 
-                    {/* Fraud Detection/Threshold Card (Supervisor Specific) */}
-                    <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm space-y-4 md:space-y-6">
-                        <div className="flex items-center gap-2 text-sm md:text-lg font-semibold border-b pb-3 -mx-4 px-4 md:-mx-6 md:px-6">
-                            <Shield className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                            {t("fraudThreshold")}
-                        </div>
 
-                        <div className="space-y-5 md:space-y-6">
-                            <div className="space-y-2 md:space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-semibold text-foreground text-xs md:text-sm">Maximum Meters per Day</p>
-                                    <span className="text-xs font-bold text-primary">100m</span>
-                                </div>
-                                <Slider defaultValue={[100]} max={200} step={10} className="py-2" />
-                                <p className="text-[10px] md:text-xs text-muted-foreground">Flag entries where meters exceed this threshold</p>
-                            </div>
-
-                            <div className="space-y-2 md:space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-semibold text-foreground text-xs md:text-sm">Maximum Hours per Day</p>
-                                    <span className="text-xs font-bold text-primary">12h</span>
-                                </div>
-                                <Slider defaultValue={[12]} max={24} step={1} className="py-2" />
-                                <p className="text-[10px] md:text-xs text-muted-foreground">Flag entries where hours exceed this threshold</p>
-                            </div>
-
-                            <div className="space-y-2 md:space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-semibold text-foreground text-xs md:text-sm">Deviation Sensitivity</p>
-                                    <span className="text-xs font-bold text-primary">Medium</span>
-                                </div>
-                                <Slider defaultValue={[50]} max={100} step={10} className="py-2" />
-                                <p className="text-[10px] md:text-xs text-muted-foreground">Higher sensitivity flags more entries for review</p>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Global Save Button */}
                     <Button className="w-full h-11 md:h-12 gradient-primary shadow-glow font-bold text-sm md:text-base rounded-xl" onClick={handleSave}>

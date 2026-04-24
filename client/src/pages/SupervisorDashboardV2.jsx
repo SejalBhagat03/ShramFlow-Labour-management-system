@@ -21,12 +21,10 @@ import { Loader2 } from 'lucide-react';
  */
 const SupervisorDashboardV2 = () => {
     const { t } = useTranslation();
-    // --- form state for new order ---
     const [workType, setWorkType] = useState('');
     const [totalQty, setTotalQty] = useState('');
     const [unit, setUnit] = useState('');
 
-    // --- selected order & labourers ---
     const { workOrders, isLoading: loadingOrders } = useWorkOrders();
     const { labourers, isLoading: loadingLabourers } = useLabourers();
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -38,7 +36,6 @@ const SupervisorDashboardV2 = () => {
     const createAssignmentsMutation = useCreateAssignments();
     const confirmWorkMutation = useConfirmWork();
 
-    // when orders load, pick the most recent if none selected
     useEffect(() => {
         if (!selectedOrder && workOrders.length > 0) {
             setSelectedOrder(workOrders[0]);
@@ -49,7 +46,6 @@ const SupervisorDashboardV2 = () => {
         e.preventDefault();
         if (!workType || !totalQty || !unit) return;
         createOrderMutation.mutate({ work_type: workType, total_quantity: Number(totalQty), unit });
-        // clear form on success using onSuccess callback above; mutation itself resets nothing
         setWorkType('');
         setTotalQty('');
         setUnit('');
@@ -77,185 +73,218 @@ const SupervisorDashboardV2 = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-4 md:space-y-6">
-                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 -mt-6 lg:-mt-10 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Supervisor Hub</span>
+            <div className="space-y-8">
+                {/* Header */}
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground tracking-tight">{t("supervisorDashboard")}</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Manage work orders and assignments for your site.</p>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Create Work Order */}
+                    <div className="bg-white p-6 rounded-2xl border border-border shadow-sm space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <Plus className="h-4 w-4" />
+                            </div>
+                            <h2 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">{t("createNewWorkOrder")}</h2>
                         </div>
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("supervisorDashboard")}</h1>
-                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Manage work orders and assignments</p>
+                        
+                        <form onSubmit={handleOrderSubmit} className="space-y-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="workType" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Work type</Label>
+                                <Input
+                                    id="workType"
+                                    value={workType}
+                                    onChange={(e) => setWorkType(e.target.value)}
+                                    placeholder="e.g. Masonry"
+                                    className="rounded-xl h-11"
+                                    required
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="totalQty" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total quantity</Label>
+                                    <Input
+                                        id="totalQty"
+                                        type="number"
+                                        value={totalQty}
+                                        onChange={(e) => setTotalQty(e.target.value)}
+                                        placeholder="0"
+                                        className="rounded-xl h-11"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="unit" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Unit</Label>
+                                    <Input
+                                        id="unit"
+                                        value={unit}
+                                        onChange={(e) => setUnit(e.target.value)}
+                                        placeholder="meters"
+                                        className="rounded-xl h-11"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <Button type="submit" disabled={createOrderMutation.isLoading} className="w-full h-11 rounded-xl font-bold">
+                                {createOrderMutation.isLoading ? (
+                                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</>
+                                ) : (
+                                    'Create Order'
+                                )}
+                            </Button>
+                        </form>
+                    </div>
+
+                    {/* Existing Orders */}
+                    <div className="bg-white p-6 rounded-2xl border border-border shadow-sm space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <ClipboardList className="h-4 w-4" />
+                            </div>
+                            <h2 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">{t("currentWorkOrders")}</h2>
+                        </div>
+                        
+                        {loadingOrders ? (
+                            <div className="space-y-3">
+                                {[1, 2].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />)}
+                            </div>
+                        ) : workOrders.length === 0 ? (
+                            <div className="py-8 text-center border-2 border-dashed border-border rounded-2xl text-muted-foreground italic text-sm">
+                                {t("noOrdersYet")}
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {workOrders.map(order => (
+                                    <button
+                                        key={order.id}
+                                        className={cn(
+                                            "w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group",
+                                            selectedOrder?.id === order.id 
+                                                ? "bg-emerald-50 border-emerald-200" 
+                                                : "bg-white border-border hover:border-emerald-200"
+                                        )}
+                                        onClick={() => setSelectedOrder(order)}
+                                    >
+                                        <div>
+                                            <div className="font-bold text-foreground text-sm">{order.work_type}</div>
+                                            <div className="text-xs text-muted-foreground">{order.total_quantity} {order.unit}</div>
+                                        </div>
+                                        <div className={cn(
+                                            "w-2 h-2 rounded-full",
+                                            selectedOrder?.id === order.id ? "bg-emerald-600" : "bg-transparent group-hover:bg-emerald-200"
+                                        )} />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
-                    {/* create work order */}
-                    <div className="bg-card p-4 md:p-6 rounded-2xl border shadow-sm space-y-4">
-                        <h2 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            {t("createNewWorkOrder")}
-                        </h2>
-                    <form onSubmit={handleOrderSubmit} className="space-y-3">
-                        <div>
-                            <Label htmlFor="workType">Work type</Label>
-                            <Input
-                                id="workType"
-                                value={workType}
-                                onChange={(e) => setWorkType(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <div className="flex-1">
-                                <Label htmlFor="totalQty">Total quantity</Label>
-                                <Input
-                                    id="totalQty"
-                                    type="number"
-                                    value={totalQty}
-                                    onChange={(e) => setTotalQty(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <Label htmlFor="unit">Unit</Label>
-                                <Input
-                                    id="unit"
-                                    value={unit}
-                                    onChange={(e) => setUnit(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <Button type="submit" disabled={createOrderMutation.isLoading} className="w-full">
-                            {createOrderMutation.isLoading ? (
-                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</>
-                            ) : (
-                                'Create'
-                            )}
-                        </Button>
-                    </form>
-                </div>
-
-                {/* select existing order */}
-                <div className="bg-card p-4 md:p-6 rounded-2xl border shadow-sm space-y-4">
-                    <h2 className="text-sm md:text-base font-semibold text-foreground flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-success" />
-                        {t("currentWorkOrders")}
-                    </h2>
-                    {loadingOrders ? (
-                        <p>{t("loading")}</p>
-                    ) : workOrders.length === 0 ? (
-                        <p>{t("noOrdersYet")}</p>
-                    ) : (
-                        <ul className="space-y-2">
-                            {workOrders.map(order => (
-                                <li key={order.id}>
-                                    <button
-                                        className={`w-full text-left p-3 rounded-xl border transition-all ${selectedOrder?.id === order.id ? 'bg-primary/10 border-primary/20 ring-1 ring-primary/20' : 'bg-card border-border hover:bg-muted/50'}`}
-                                        onClick={() => setSelectedOrder(order)}
-                                    >
-                                        <div className="font-semibold text-foreground">{order.work_type}</div>
-                                        <div className="text-xs text-muted-foreground">{order.total_quantity} {order.unit}</div>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            </div>
-
-                {/* assignment section */}
                 {selectedOrder && (
-                    <div className="bg-card p-3 md:p-4 rounded-lg shadow">
-                        <h2 className="text-lg font-semibold mb-3">{t("assignLabourersFor", { name: selectedOrder.work_type })}</h2>
-                        <div className="space-y-3">
-                            {loadingLabourers ? (
-                                <p>{t("loading")}</p>
-                            ) : labourers.length === 0 ? (
-                                <p>{t("noLabourersAvailable")}</p>
-                            ) : (
-                                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {labourers.map(l => (
-                                        <label key={l.id} className="flex items-center p-2 rounded-lg border border-border bg-muted/5 cursor-pointer hover:bg-muted/10 transition-colors">
-                                            <input
-                                                type="checkbox"
-                                                className="mr-3 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                checked={selectedLabourers.includes(l.id)}
-                                                onChange={() => toggleLabourer(l.id)}
-                                            />
-                                            <span className="text-sm font-medium">{l.name}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
+                    <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-border bg-muted/20">
+                            <h2 className="text-lg font-bold text-foreground tracking-tight">
+                                {t("assignLabourersFor", { name: selectedOrder.work_type })}
+                            </h2>
+                            <p className="text-xs text-muted-foreground mt-1">Select workers and split the workload equally.</p>
                         </div>
-                        <Button
-                            className="mt-3 w-full"
-                            onClick={handleAssign}
-                            disabled={createAssignmentsMutation.isLoading || selectedLabourers.length === 0}
-                        >
-                            {createAssignmentsMutation.isLoading ? (
-                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("saving")}</>
-                            ) : (
-                                t("assignSelected")
-                            )}
-                        </Button>
+                        
+                        <div className="p-6 space-y-8">
+                            <div>
+                                {loadingLabourers ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-muted animate-pulse rounded-xl" />)}
+                                    </div>
+                                ) : labourers.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground italic">{t("noLabourersAvailable")}</p>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                        {labourers.map(l => (
+                                            <label 
+                                                key={l.id} 
+                                                className={cn(
+                                                    "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                                                    selectedLabourers.includes(l.id)
+                                                        ? "bg-emerald-50 border-emerald-200 shadow-sm"
+                                                        : "bg-white border-border hover:border-emerald-200"
+                                                )}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
+                                                    checked={selectedLabourers.includes(l.id)}
+                                                    onChange={() => toggleLabourer(l.id)}
+                                                />
+                                                <span className="text-sm font-semibold text-foreground">{l.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* claims table */}
-                        <div className="mt-8">
-                            <h3 className="font-semibold mb-3">{t("currentAssignmentsClaims")}</h3>
-                            {loadingAssignments ? (
-                                <p className="text-center py-4 text-xs text-muted-foreground">{t("loading")}</p>
-                            ) : assignments.length === 0 ? (
-                                <p className="text-center py-4 text-xs text-muted-foreground italic">{t("noData")}</p>
-                            ) : (
-                                <div className="overflow-x-auto -mx-0">
-                                    <table className="w-full table-auto text-xs md:text-sm border-collapse min-w-[500px]">
-                                        <thead>
-                                            <tr className="text-left bg-muted/30">
-                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("labourer")}</th>
-                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("assigned")}</th>
-                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("yourClaim")}</th>
-                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("status")}</th>
-                                                <th className="p-2 md:p-3 border-b text-[10px] uppercase font-bold tracking-wider">{t("actions")}</th>
+                            <Button
+                                className="h-12 px-8 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700"
+                                onClick={handleAssign}
+                                disabled={createAssignmentsMutation.isLoading || selectedLabourers.length === 0}
+                            >
+                                {createAssignmentsMutation.isLoading ? (
+                                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("saving")}</>
+                                ) : (
+                                    t("assignSelected")
+                                )}
+                            </Button>
+
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">{t("currentAssignmentsClaims")}</h3>
+                                <div className="border border-border rounded-2xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-muted/50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("labourer")}</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("assigned")}</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("yourClaim")}</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("status")}</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("actions")}</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            {assignments.map(a => (
-                                                <tr key={a.id} className="border-t hover:bg-muted/10 transition-colors">
-                                                    <td className="p-2 md:p-3 font-medium text-xs">{a.labourer?.name || '—'}</td>
-                                                    <td className="p-2 md:p-3 whitespace-nowrap text-xs">
-                                                        {a.assigned_quantity} {selectedOrder.unit}
-                                                    </td>
-                                                    <td className="p-2 md:p-3 text-xs">{a.labour_claim}</td>
-                                                    <td className="p-2 md:p-3">
-                                                        <span className={cn(
-                                                            "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                                                            a.status === 'claimed' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                                                        )}>
-                                                            {a.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-2 md:p-3">
-                                                        {a.status === 'claimed' ? (
-                                                            <Button
-                                                                size="sm"
-                                                                className="h-8 rounded-lg text-xs font-bold"
-                                                                onClick={() => confirmWorkMutation.mutate(a.id)}
-                                                            >
-                                                                Confirm
-                                                            </Button>
-                                                        ) : (
-                                                            '-'
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                        <tbody className="divide-y divide-border/50">
+                                            {loadingAssignments ? (
+                                                <tr><td colSpan="5" className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></td></tr>
+                                            ) : assignments.length === 0 ? (
+                                                <tr><td colSpan="5" className="text-center py-8 text-muted-foreground italic text-xs">{t("noData")}</td></tr>
+                                            ) : (
+                                                assignments.map(a => (
+                                                    <tr key={a.id} className="hover:bg-muted/30 transition-colors">
+                                                        <td className="px-6 py-4 font-bold text-foreground">{a.labourer?.name || '—'}</td>
+                                                        <td className="px-6 py-4 text-muted-foreground">
+                                                            {a.assigned_quantity} {selectedOrder.unit}
+                                                        </td>
+                                                        <td className="px-6 py-4 font-semibold text-foreground">{a.labour_claim || '0'}</td>
+                                                        <td className="px-6 py-4">
+                                                            <Badge variant={a.status === 'claimed' ? 'success' : 'secondary'} className="text-[10px] h-5 uppercase">
+                                                                {a.status}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            {a.status === 'claimed' && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="h-8 rounded-lg font-bold"
+                                                                    onClick={() => confirmWorkMutation.mutate(a.id)}
+                                                                >
+                                                                    Confirm
+                                                                </Button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )}

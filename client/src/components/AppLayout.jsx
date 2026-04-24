@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,10 @@ import {
     User,
     ChevronDown,
     HardHat,
+    Trash2,
+    Zap,
 } from 'lucide-react';
+import { WifiOff } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,6 +37,57 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useEffect } from 'react';
+import { offlineSyncService } from '@/services/offlineSyncService';
+import { Briefcase } from 'lucide-react';
+
+const OfflineIndicator = () => {
+    const [isOffline, setIsOffline] = useState(!navigator.onLine);
+    const [pendingCount, setPendingCount] = useState(0);
+
+    useEffect(() => {
+        const updateCount = async () => {
+            const count = await offlineSyncService.getPendingCount();
+            setPendingCount(count);
+        };
+
+        const handleSync = (e) => {
+            setPendingCount(e.detail.remaining || 0);
+        };
+
+        const handleOnline = () => setIsOffline(false);
+        const handleOffline = () => setIsOffline(true);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        window.addEventListener('offline-sync-complete', handleSync);
+        
+        updateCount();
+        const interval = setInterval(updateCount, 10000); // Poll every 10s
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('offline-sync-complete', handleSync);
+            clearInterval(interval);
+        };
+    }, []);
+
+    if (!isOffline && pendingCount === 0) return null;
+
+    return (
+        <div className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm animate-pulse-soft transition-all",
+            isOffline ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-primary/10 text-primary border-primary/20"
+        )}>
+            {isOffline ? <WifiOff className="h-3.5 w-3.5" /> : <ClipboardList className="h-3.5 w-3.5" />}
+            <span className="text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
+                {isOffline ? "Offline" : "Syncing"}
+                {pendingCount > 0 && ` (${pendingCount})`}
+            </span>
+        </div>
+    );
+};
 
 /**
  * AppLayout component that provides basic scaffolding for the application.
@@ -52,17 +106,34 @@ export const AppLayout = ({ children }) => {
         day: 'numeric'
     }).format(new Date());
 
-    // Navigation items configuration
-    const navItems = [
-        { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
-        { path: '/labourers', icon: Users, label: t('labourers') },
-        { path: '/work-entries', icon: ClipboardList, label: t('workEntries') },
-        { path: '/payments', icon: CreditCard, label: t('payments') },
-        { path: '/daily-logs', icon: CalendarDays, label: t('dailyLogs') },
-        { path: '/work-disputes', icon: AlertTriangle, label: t('workDisputes') },
-        { path: '/reports', icon: BarChart3, label: t('reports') },
-        ...(user?.role === 'supervisor' ? [{ path: '/audit-logs', icon: History, label: 'Audit Logs' }] : []),
-        { path: '/flagged', icon: AlertTriangle, label: t('flagged') },
+    const navGroups = [
+        {
+            title: 'MAIN',
+            items: [
+                { path: '/command-center', icon: Zap, label: 'Command Center' },
+            ]
+        },
+        {
+            title: 'OPERATIONS',
+            items: [
+                { path: '/projects', icon: Briefcase, label: 'Projects' },
+                { path: '/labourers', icon: Users, label: t('labourers') },
+                { path: '/work-entries', icon: ClipboardList, label: t('workEntries') },
+                { path: '/daily-logs', icon: CalendarDays, label: t('dailyLogs') },
+                { path: '/work-disputes', icon: AlertTriangle, label: t('workDisputes') },
+            ]
+        },
+        {
+            title: 'FINANCE & REPORTS',
+            items: [
+                { path: '/payments', icon: CreditCard, label: t('payments') },
+                { path: '/reports', icon: BarChart3, label: t('reports') },
+                ...(user?.role === 'supervisor' ? [
+                    { path: '/audit-logs', icon: History, label: 'Audit Logs' },
+                    { path: '/recycle-bin', icon: Trash2, label: 'Recycle Bin' }
+                ] : [])
+            ]
+        }
     ];
 
     const bottomNavItems = [
@@ -70,95 +141,54 @@ export const AppLayout = ({ children }) => {
     ];
 
     return (
-        <div className="min-h-screen bg-background">
-            {/* Main Header - Unified for Desktop & Mobile */}
-            <header className="fixed top-0 left-0 right-0 h-14 md:h-16 bg-background/80 backdrop-blur-md border-b border-border/40 z-40 transition-all duration-300">
-                <div className={cn("h-full px-3 md:px-8 flex items-center justify-between ml-0 transition-all duration-300", "lg:ml-72")}>
-                    {/* Left: Branding (Only shown on mobile, hidden on desktop) */}
+        <div className="min-h-screen bg-gradient-to-br from-[#E6F9F0] to-[#ECFDF5] font-inter">
+            {/* Main Header */}
+            <header className="fixed top-0 left-0 right-0 h-14 md:h-16 bg-white/70 backdrop-blur-md border-b border-border z-40">
+                <div className={cn("h-full px-4 md:px-8 flex items-center justify-between ml-0 transition-all duration-300", "lg:ml-64")}>
+                    {/* Left: Branding */}
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2 lg:hidden">
-                            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shadow-glow-sm flex-shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                                 <HardHat className="h-4 w-4 text-primary-foreground" />
                             </div>
-                            <h1 className="hidden xs:block font-bold text-sm md:text-lg text-gradient truncate max-w-[100px] sm:max-w-none">{t('appName')}</h1>
+                            <h1 className="font-bold text-sm text-foreground">{t('appName')}</h1>
                         </div>
 
                         <div className="hidden lg:block">
-                            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{t('dashboard')}</h2>
+                            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('dashboard')}</h2>
                         </div>
                     </div>
 
-                    {/* Right: Date + Extras + Sidebar Toggle */}
-                    <div className="flex items-center gap-1.5 sm:gap-4 justify-end">
-                        {/* Date */}
-                        <div className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-muted/50 text-muted-foreground">
-                            <CalendarDays className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                            <span className="text-[10px] md:text-xs font-medium whitespace-nowrap">{currentDate}</span>
+                    {/* Right Side */}
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-muted-foreground">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">{currentDate}</span>
                         </div>
 
-                        <div className="scale-90 md:scale-100 origin-right">
-                            <LanguageSwitcher />
-                        </div>
-                        
-                        <div className="scale-90 md:scale-100">
-                            <NotificationBell />
-                        </div>
+                        <OfflineIndicator />
+                        <LanguageSwitcher />
+                        <NotificationBell />
 
-                        <div className="h-6 md:h-8 w-[1px] bg-border/60 mx-0.5 hidden sm:block" />
+                        <div className="h-6 w-[1px] bg-border hidden sm:block" />
 
-                        {/* Profile Dropdown */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 md:h-10 flex items-center gap-2 px-1 md:px-2 hover:bg-primary/5 rounded-full outline-none">
-                                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full gradient-primary flex items-center justify-center shadow-sm flex-shrink-0">
-                                        <span className="text-primary-foreground font-bold text-[10px] md:text-xs">
-                                            {(user?.name ?? 'U').charAt(0)}
-                                        </span>
-                                    </div>
-                                    <div className="hidden sm:flex flex-col items-start gap-0 text-left mr-1">
-                                        <span className="text-xs font-semibold text-foreground leading-tight">{user?.name?.split(' ')[0]}</span>
-                                        <span className="text-[10px] text-muted-foreground leading-tight capitalize">{user?.role}</span>
-                                    </div>
-                                    <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 mt-1 rounded-2xl p-2 shadow-xl border-border/40 backdrop-blur-xl">
-                                <DropdownMenuLabel className="font-normal px-2 py-2">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-semibold leading-none">{user?.name}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="my-1 bg-border/40" />
-                                <DropdownMenuItem asChild className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer gap-2 py-2.5">
-                                    <Link to="/settings" className="w-full flex items-center">
-                                        <User className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer gap-2 py-2.5">
-                                    <Link to="/settings" className="w-full flex items-center">
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="my-1 bg-border/40" />
-                                <DropdownMenuItem 
-                                    onClick={logout}
-                                    className="rounded-xl focus:bg-destructive/10 focus:text-destructive cursor-pointer gap-2 py-2.5 text-destructive"
-                                >
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {/* Profile */}
+                        <Button asChild variant="ghost" className="h-9 px-2 hover:bg-muted rounded-full">
+                            <Link to="/settings" className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                                    <span className="text-primary-foreground font-bold text-[10px]">
+                                        {(user?.name ?? 'U')[0]}
+                                    </span>
+                                </div>
+                                <span className="hidden sm:block text-xs font-semibold">{user?.name}</span>
+                            </Link>
+                        </Button>
 
-                        {/* Sidebar Toggle - Moved to right side for mobile */}
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setSidebarOpen(true)}
-                            className="lg:hidden hover:bg-primary/10 ml-1 rounded-full border border-border/40"
+                            className="lg:hidden"
                         >
                             <Menu className="h-5 w-5" />
                         </Button>
@@ -168,140 +198,91 @@ export const AppLayout = ({ children }) => {
 
             {/* Sidebar Overlay */}
             {sidebarOpen && (
-                <div
-                    className="lg:hidden fixed inset-0 bg-foreground/30 backdrop-blur-sm z-40 transition-opacity duration-300"
-                    onClick={() => setSidebarOpen(false)}
-                />
+                <div className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={() => setSidebarOpen(false)} />
             )}
 
-            {/* Sidebar Navigation */}
+            {/* Sidebar */}
             <aside className={cn(
-                'fixed top-0 left-0 h-full w-72 bg-sidebar/95 backdrop-blur-xl z-50 transition-transform duration-300 ease-out',
-                'lg:translate-x-0', // Always visible on Desktop
-                sidebarOpen ? 'translate-x-0' : '-translate-x-full' // Toggle on Mobile
+                'fixed top-0 left-0 h-full w-64 bg-sidebar backdrop-blur-xl z-50 transition-transform duration-300 ease-out border-r border-border',
+                'lg:translate-x-0',
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             )}>
                 <div className="flex flex-col h-full">
-                    {/* Logo Area */}
-                    <div className="h-16 px-5 flex items-center justify-between border-b border-sidebar-border">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow-sm">
-                                    <HardHat className="h-5 w-5 text-primary-foreground" />
-                                </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success rounded-full border-2 border-sidebar" />
-                            </div>
-                            <div>
-                                <span className="font-bold text-lg text-sidebar-foreground">{t('appName')}</span>
-                                <p className="text-xs text-muted-foreground -mt-0.5">Labour Management</p>
-                            </div>
+                    {/* Brand */}
+                    <div className="h-16 px-6 flex items-center gap-3 border-b border-border">
+                        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+                            <HardHat className="h-5 w-5 text-primary-foreground" />
                         </div>
-                        {/* Close button for mobile */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 md:h-10 md:w-10 text-muted-foreground mr-1 lg:hidden rounded-full"
-                            onClick={() => setSidebarOpen(false)}
-                        >
-                            <X className="h-5 w-5" />
-                        </Button>
-                    </div>
-
-                    {/* User Info Card */}
-                    <div className="p-4 mx-3 mt-3 rounded-xl bg-gradient-to-br from-sidebar-accent/80 to-sidebar-accent/40 border border-sidebar-border/50">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-11 h-11 rounded-xl gradient-primary flex items-center justify-center shadow-md">
-                                    <span className="text-primary-foreground font-bold text-sm">
-                                        {(user?.name ?? 'User')
-                                            .split(' ')
-                                            .filter(Boolean)
-                                            .map((n) => n[0])
-                                            .join('')}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-sidebar-foreground truncate">{user?.name}</p>
-                                <p className="text-xs text-muted-foreground capitalize flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                                    {user?.role}
-                                </p>
-                            </div>
+                        <div>
+                            <span className="font-bold text-base tracking-tight text-foreground">{t('appName')}</span>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest leading-none mt-1">Labour System</p>
                         </div>
                     </div>
 
-                    {/* Main Navigation Links */}
-                    <nav className="flex-1 p-3 space-y-1 overflow-y-auto mt-2">
-                        {navItems.map((item) => {
-                            const isActive = location.pathname === item.path;
-                            return (
-                                <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    onClick={() => setSidebarOpen(false)}
-                                    className={cn(
-                                        'group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-                                        isActive
-                                            ? 'bg-sidebar-accent text-sidebar-primary shadow-sm'
-                                            : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
-                                    )}
-                                >
-                                    <div className={cn(
-                                        'p-1.5 rounded-lg transition-all duration-200',
-                                        isActive
-                                            ? 'bg-primary/15'
-                                            : 'group-hover:bg-primary/10'
-                                    )}>
-                                        <item.icon className={cn(
-                                            'h-4.5 w-4.5 transition-colors',
-                                            isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
-                                        )} strokeWidth={2} />
-                                    </div>
-                                    <span className="flex-1">{item.label}</span>
-                                    {isActive && (
-                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                    )}
-                                </Link>
-                            );
-                        })}
+                    {/* Nav */}
+                    <nav className="flex-1 px-4 py-6 space-y-7 overflow-y-auto scrollbar-hide">
+                        {navGroups.map((group, idx) => (
+                            <div key={idx} className="space-y-2">
+                                <h3 className="text-[10px] font-bold text-muted-foreground/60 tracking-widest px-3 uppercase">
+                                    {group.title}
+                                </h3>
+                                <div className="space-y-1">
+                                    {group.items.map((item) => {
+                                        const isActive = location.pathname === item.path;
+                                        return (
+                                            <Link
+                                                key={item.path}
+                                                to={item.path}
+                                                onClick={() => setSidebarOpen(false)}
+                                                className={cn(
+                                                    'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                                                    isActive
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                )}
+                                            >
+                                                <item.icon className="h-4 w-4" />
+                                                <span>{item.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
                     </nav>
 
-                    {/* Bottom Actions (Language, Settings, Logout) */}
-                    <div className="p-3 border-t border-sidebar-border space-y-1">
+                    {/* Bottom */}
+                    <div className="p-4 border-t border-border space-y-1">
                         {bottomNavItems.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    onClick={() => setSidebarOpen(false)}
                                     className={cn(
-                                        'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                                        isActive
-                                            ? 'bg-sidebar-accent text-sidebar-primary'
-                                            : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
+                                        'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
+                                        isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'
                                     )}
                                 >
-                                    <item.icon className="h-4.5 w-4.5" strokeWidth={2} />
+                                    <item.icon className="h-4 w-4" />
                                     <span>{item.label}</span>
                                 </Link>
                             );
                         })}
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl px-4 py-2.5 h-auto"
+                        <button
                             onClick={logout}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
                         >
-                            <LogOut className="h-4.5 w-4.5" strokeWidth={2} />
-                            <span className="font-medium">{t('logout')}</span>
-                        </Button>
+                            <LogOut className="h-4 w-4" />
+                            <span>{t('logout')}</span>
+                        </button>
                     </div>
                 </div>
             </aside>
 
-            {/* Main Content Area */}
-            <main className="lg:ml-72 pt-14 md:pt-16 min-h-screen transition-all duration-300">
-                <div className="min-h-0">
+            {/* Main */}
+            <main className="lg:ml-64 pt-14 md:pt-16 min-h-screen">
+                <div className="p-4 md:p-8">
                     {children}
                 </div>
             </main>

@@ -3,13 +3,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Max-Age": "86400", // 24 hours - force browser to cache the SUCCESSFUL preflight
 };
 
 serve(async (req) => {
     // Handle CORS preflight
     if (req.method === "OPTIONS") {
-        return new Response(null, { headers: corsHeaders });
+        return new Response("ok", { 
+            status: 200, 
+            headers: corsHeaders 
+        });
     }
 
     try {
@@ -67,7 +72,10 @@ serve(async (req) => {
         }
 
         // Parse request body
-        const { email, password, fullName, phone } = await req.json();
+        const { email, password, fullName, phone, orgId } = await req.json();
+
+        // Sanitize orgId: ensure it's a valid UUID or null (prevents "null" or "undefined" strings)
+        const sanitizedOrgId = (orgId && orgId !== 'null' && orgId !== 'undefined' && orgId !== '') ? orgId : null;
 
         // Validate required fields
         if (!email || !password || !fullName) {
@@ -105,6 +113,7 @@ serve(async (req) => {
             user_metadata: {
                 full_name: fullName,
                 phone: phone || null,
+                organization_id: sanitizedOrgId,
                 role: 'labour' // hint to trigger
             },
         });
@@ -123,9 +132,10 @@ serve(async (req) => {
         // Assign 'labour' role to the new user (idempotent)
         const { error: roleInsertError } = await supabaseAdmin
             .from("user_roles")
-            .insert({ user_id: newUser.user.id, role: "labour" })
-            .onConflict('user_id,role')
-            .ignore();
+            .upsert(
+                { user_id: newUser.user.id, role: "labour" },
+                { onConflict: 'user_id,role', ignoreDuplicates: true } as any
+            );
 
         if (roleInsertError) {
             console.error("Error assigning role:", roleInsertError);

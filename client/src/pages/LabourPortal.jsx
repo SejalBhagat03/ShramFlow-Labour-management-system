@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { labourerService } from "@/services/labourerService";
 import { notificationService } from "@/services/notificationService";
 import { ledgerService } from "@/services/ledgerService";
@@ -9,7 +9,19 @@ import { useNavigate } from "react-router-dom";
 import { NotificationBell } from "@/components/NotificationBell";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut } from "lucide-react";
+import { 
+    LogOut, 
+    HardHat, 
+    LayoutDashboard, 
+    ClipboardPlus, 
+    CreditCard, 
+    History, 
+    User, 
+    Plus, 
+    ArrowRight, 
+    CheckCircle2, 
+    ShieldAlert 
+} from "lucide-react";
 // Remove mock data imports
 const LABOUR_WORK_TYPES = ["Masonry", "Plastering", "Brick Work", "Excavation", "Painting", "Carpentry", "Other"];
 
@@ -45,17 +57,6 @@ function SummaryCard({ label, value, icon, bg, iconBg }) {
     );
 }
 
-// ─── Section Header ───────────────────────────────────────────────────────────
-function SectionHeader({ title }) {
-    return (
-        <h2 className="text-lg font-bold text-gray-700 mb-3 mt-6 flex items-center gap-2">
-            <span className="w-1 h-5 bg-emerald-500 rounded-full inline-block"></span>
-            {title}
-        </h2>
-    );
-}
-
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function LabourPortal() {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
@@ -97,7 +98,6 @@ export default function LabourPortal() {
         const fetchData = async () => {
             if (user?.id) {
                 try {
-                    // 1. Profile
                     const profileData = await labourerService.getLabourerByUserId(user.id);
                     let labourerId = null;
 
@@ -112,7 +112,6 @@ export default function LabourPortal() {
                         }));
                     }
 
-                    // 2. Ledger & Work History (only if we have a valid labourer ID)
                     if (labourerId && labourerId !== 'placeholder') {
                         const [ledgerData, workData] = await Promise.all([
                             ledgerService.getLedger(labourerId),
@@ -122,7 +121,6 @@ export default function LabourPortal() {
                         setLedger(ledgerData || []);
                         setWorkHistory(workData || []);
 
-                        // Calculate Financials
                         const creds = (ledgerData || []).filter(l => l.transaction_type === 'CREDIT');
                         const debs = (ledgerData || []).filter(l => l.transaction_type === 'DEBIT');
 
@@ -130,9 +128,7 @@ export default function LabourPortal() {
                         const advanceTaken = debs.reduce((sum, item) => sum + Number(item.amount), 0);
                         const pendingPayment = totalEarnings - advanceTaken;
 
-                        // Simple "Work This Month" calculation
                         const currentMonth = new Date().getMonth();
-                        // For "Work This Month" in meters, we need workData
                         const metersThisMonth = (workData || [])
                             .filter(w => new Date(w.date).getMonth() === currentMonth)
                             .reduce((sum, item) => sum + (Number(item.qty) || Number(item.meters) || 0), 0);
@@ -167,23 +163,17 @@ export default function LabourPortal() {
         e.preventDefault();
         if (!workForm.type || !workForm.qty) return;
         setWorkSubmitted(true);
-        // TODO: Wire up to workService
         setTimeout(() => { setWorkSubmitted(false); setWorkForm({ date: today, type: "", qty: "", photo: null }); }, 3000);
     };
 
     const handleAdvSubmit = async (e) => {
         e.preventDefault();
         if (!advForm.amount) return;
-
-        // Check if we have a valid labourer PK (UUID) to link the request
-        // If we only have the display ID (e.g. LBR-...), we might fallback or fail gracefully
         const labourerId = labourProfile.labourer_pk;
-
         if (!labourerId) {
             toast({ title: "Error", description: "Could not identify labourer record. Please contact supervisor.", variant: "destructive" });
             return;
         }
-
         try {
             await notificationService.requestAdvance(labourerId, advForm.amount, advForm.note);
             setAdvSubmitted(true);
@@ -195,356 +185,331 @@ export default function LabourPortal() {
     };
 
     return (
-        <div className="min-h-screen bg-background font-sans">
-            {/* ── Sidebar (desktop) ── */}
-            <aside className="hidden md:flex fixed top-0 left-0 h-full w-72 bg-white border-r border-gray-100 flex-col z-20 shadow-sm">
+        <div className="min-h-screen bg-background">
+            {/* Sidebar */}
+            <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 bg-white border-r border-border flex-col z-20">
                 {/* Brand */}
-                <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-lg">S</div>
+                <div className="h-16 px-6 flex items-center gap-3 border-b border-border">
+                    <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+                        <HardHat className="h-5 w-5 text-primary-foreground" />
+                    </div>
                     <div>
-                        <div className="font-bold text-gray-800 text-sm leading-tight">ShramFlow</div>
-                        <div className="text-xs text-gray-400">Labour Management</div>
+                        <span className="font-bold text-base tracking-tight text-foreground">ShramFlow</span>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest leading-none mt-1">Labour Portal</p>
                     </div>
                 </div>
 
-                {/* User */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                        {labourProfile.name.split(" ").map(w => w[0]).join("")}
-                    </div>
-                    <div>
-                        <div className="font-semibold text-gray-800 text-sm leading-tight">{labourProfile.name}</div>
-                        <div className="text-xs text-emerald-500 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                            {labourProfile.role}
+                {/* Profile */}
+                <div className="px-6 py-6 border-b border-border">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                            {labourProfile.name.split(" ").map(w => w[0]).join("")}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{labourProfile.name}</p>
+                            <p className="text-xs text-emerald-600 font-medium">{labourProfile.role}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 px-3 py-4 space-y-1">
+                <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                     {[
-                        { id: "dashboard", label: t("dashboard"), icon: "⊞" },
-                        { id: "work", label: t("addWorkEntry"), icon: "✏" },
-                        { id: "advance", label: t("requestAdvance"), icon: "💳" },
-                        { id: "history", label: t("workHistory"), icon: "📋" },
-                        { id: "payments", label: t("paymentHistory"), icon: "💰" },
-                        { id: "profile", label: t("myProfile"), icon: "👤" },
+                        { id: "dashboard", label: t("dashboard"), icon: LayoutDashboard },
+                        { id: "work", label: t("addWorkEntry"), icon: ClipboardPlus },
+                        { id: "advance", label: t("requestAdvance"), icon: CreditCard },
+                        { id: "history", label: t("workHistory"), icon: History },
+                        { id: "profile", label: t("myProfile"), icon: User },
                     ].map(item => (
                         <button
                             key={item.id}
                             onClick={() => setTab(item.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === item.id
-                                ? "bg-emerald-50 text-emerald-700 font-semibold"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                                }`}
+                            className={cn(
+                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                                tab === item.id
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
                         >
-                            <span className="text-base w-5 text-center">{item.icon}</span>
+                            <item.icon className="h-4 w-4" />
                             {item.label}
-                            {tab === item.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500"></span>}
                         </button>
                     ))}
                 </nav>
 
-                <div className="px-5 py-4 border-t border-gray-100">
+                {/* Logout */}
+                <div className="p-4 border-t border-border">
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
                     >
-                        <LogOut className="h-4.5 w-4.5" strokeWidth={2} />
+                        <LogOut className="h-4 w-4" />
                         <span>{t("logout")}</span>
                     </button>
                 </div>
             </aside>
 
-            {/* ── Mobile Header ── */}
-            <header className="md:hidden fixed top-0 left-0 right-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm">
+            {/* Mobile Header */}
+            <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md border-b border-border z-40 px-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">S</div>
-                    <span className="font-bold text-gray-800 text-sm">ShramFlow</span>
+                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <HardHat className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <span className="font-bold text-sm">ShramFlow</span>
                 </div>
                 <div className="flex items-center gap-3">
                     <NotificationBell />
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
                         {labourProfile.name.split(" ").map(w => w[0]).join("")}
                     </div>
                 </div>
             </header>
 
-            {/* ── Main Content ── */}
-            <main className="md:ml-72 pt-16 md:pt-0 pb-24 md:pb-0 min-h-screen">
-                <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-
-                    {/* Page Title */}
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center gap-2 text-xs text-emerald-500 font-medium mb-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                                Live Dashboard
-                            </div>
-                            <h1 className="text-3xl font-bold text-gray-800">
-                                {tab === "dashboard" && t("dashboard")}
-                                {tab === "work" && t("addWorkEntry")}
-                                {tab === "advance" && t("requestAdvance")}
-                                {tab === "history" && t("workHistory")}
-                                {tab === "payments" && t("paymentHistory")}
-                                {tab === "profile" && t("myProfile")}
-                            </h1>
-                            <p className="text-gray-400 text-sm mt-1">Welcome back, {labourProfile.name.split(" ")[0]}! Here's your work overview.</p>
-                        </div>
-                        {/* Desktop Bell */}
-                        <div className="hidden md:block">
-                            <NotificationBell />
-                        </div>
+            {/* Main Content */}
+            <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
+                <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
+                    {/* Header */}
+                    <div>
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">
+                            {tab === "dashboard" ? "Overview" : tab}
+                        </p>
+                        <h1 className="text-2xl font-bold text-foreground tracking-tight mt-1">
+                            {tab === "dashboard" && "Welcome back, " + labourProfile.name.split(" ")[0]}
+                            {tab === "work" && t("addWorkEntry")}
+                            {tab === "advance" && t("requestAdvance")}
+                            {tab === "history" && "Transaction History"}
+                            {tab === "profile" && "Your Profile"}
+                        </h1>
                     </div>
 
-
-
-                    {/* ── DASHBOARD TAB ── */}
                     {tab === "dashboard" && (
-                        <>
+                        <div className="space-y-8">
                             {/* Summary Cards */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
-                                <SummaryCard label={t("workThisMonth")} value={financials.workThisMonth} icon="🏗" bg="bg-white" iconBg="bg-emerald-50 text-emerald-600" />
-                                <SummaryCard label={t("totalEarnings")} value={financials.totalEarnings} icon="💵" bg="bg-emerald-50" iconBg="bg-emerald-100 text-emerald-600" />
-                                <SummaryCard label={t("advanceTaken")} value={financials.advanceTaken} icon="⏩" bg="bg-amber-50" iconBg="bg-amber-100 text-amber-600" />
-                                <SummaryCard label={t("pendingPayment")} value={financials.pendingPayment} icon="⏳" bg="bg-white" iconBg="bg-blue-50 text-blue-500" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{t("workThisMonth")}</p>
+                                    <p className="text-xl font-bold text-foreground">{financials.workThisMonth}</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{t("totalEarnings")}</p>
+                                    <p className="text-xl font-bold text-foreground">{financials.totalEarnings}</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{t("advanceTaken")}</p>
+                                    <p className="text-xl font-bold text-foreground text-red-600">{financials.advanceTaken}</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{t("pendingPayment")}</p>
+                                    <p className="text-xl font-bold text-emerald-600">{financials.pendingPayment}</p>
+                                </div>
                             </div>
 
-                            {/* Fraud Transparency Notice */}
-                            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 flex gap-2 items-start">
-                                <span className="text-lg">⚠️</span>
-                                <span>Final payment is calculated based on supervisor approval. Your submitted entries may be adjusted after verification.</span>
-                            </div>
+                            <div className="grid md:grid-cols-3 gap-8">
+                                <div className="md:col-span-2 space-y-6">
+                                    <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                                        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                                            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">{t("recentWorkEntries")}</h3>
+                                            <button onClick={() => setTab("history")} className="text-xs font-bold text-primary hover:underline">View All</button>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-muted/50">
+                                                    <tr>
+                                                        <th className="text-left px-6 py-3 text-muted-foreground font-semibold">Date</th>
+                                                        <th className="text-left px-6 py-3 text-muted-foreground font-semibold">Type</th>
+                                                        <th className="text-left px-6 py-3 text-muted-foreground font-semibold">Quantity</th>
+                                                        <th className="text-left px-6 py-3 text-muted-foreground font-semibold">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-border/50">
+                                                    {workHistory.length === 0 ? (
+                                                        <tr><td colSpan="4" className="text-center py-8 text-muted-foreground">No work entries yet</td></tr>
+                                                    ) : (
+                                                        workHistory.slice(0, 5).map((row, i) => (
+                                                            <tr key={i} className="hover:bg-muted/30 transition-colors">
+                                                                <td className="px-6 py-3 text-muted-foreground">{row.date}</td>
+                                                                <td className="px-6 py-3 font-medium">{row.task_type || row.type}</td>
+                                                                <td className="px-6 py-3 font-semibold">{row.meters || row.qty || row.amount}m</td>
+                                                                <td className="px-6 py-3">
+                                                                    <Badge variant={row.status === 'Approved' ? 'success' : row.status === 'Pending' ? 'secondary' : 'destructive'} className="text-[10px] h-5">
+                                                                        {row.status}
+                                                                    </Badge>
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
 
-                            {/* Recent Work Entries */}
-                            <SectionHeader title={t("recentWorkEntries")} />
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="bg-gray-50 border-b border-gray-100">
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("date")}</th>
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("type")}</th>
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold hidden sm:table-cell">{t("qty")}</th>
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("status")}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {workHistory.length === 0 ? (
-                                            <tr><td colSpan="4" className="text-center py-4 text-gray-400">No work entries yet</td></tr>
-                                        ) : (
-                                            workHistory.slice(0, 3).map((row, i) => (
-                                                <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
-                                                    <td className="px-4 py-3 text-gray-600">{row.date}</td>
-                                                    <td className="px-4 py-3 text-gray-700 font-medium">{row.task_type || row.type}</td>
-                                                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{row.meters || row.qty || row.amount}</td>
-                                                    <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
+                                <div className="space-y-6">
+                                    <div className="bg-white p-6 rounded-2xl border border-border shadow-sm">
+                                        <h3 className="font-bold text-sm mb-4 uppercase tracking-wider text-muted-foreground">{t("quickActions")}</h3>
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => setTab("work")}
+                                                className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                                                        <Plus className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-sm font-bold text-foreground">{t("addWorkEntry")}</p>
+                                                        <p className="text-[10px] text-muted-foreground font-medium">Log your progress</p>
+                                                    </div>
+                                                </div>
+                                                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                                            </button>
+                                            <button
+                                                onClick={() => setTab("advance")}
+                                                className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-emerald-500/50 hover:bg-emerald-50/30 transition-all group"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                                        <CreditCard className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-sm font-bold text-foreground">{t("requestAdvance")}</p>
+                                                        <p className="text-[10px] text-muted-foreground font-medium">Financial support</p>
+                                                    </div>
+                                                </div>
+                                                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-
-                            {/* Quick Actions */}
-                            <SectionHeader title={t("quickActions")} />
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => setTab("work")}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-5 py-5 text-left transition-colors shadow-sm"
-                                >
-                                    <div className="text-2xl mb-2">✏️</div>
-                                    <div className="font-semibold text-sm">{t("addWorkEntry")}</div>
-                                    <div className="text-xs text-emerald-100 mt-0.5">Log today's work</div>
-                                </button>
-                                <button
-                                    onClick={() => setTab("advance")}
-                                    className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-2xl px-5 py-5 text-left transition-colors shadow-sm"
-                                >
-                                    <div className="text-2xl mb-2">💳</div>
-                                    <div className="font-semibold text-sm">{t("requestAdvance")}</div>
-                                    <div className="text-xs text-gray-400 mt-0.5">Submit advance request</div>
-                                </button>
-                            </div>
-                        </>
+                        </div>
                     )}
 
-                    {/* ── ADD WORK ENTRY TAB ── */}
+                    {/* Work Entry Form */}
                     {tab === "work" && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-lg">
+                        <div className="bg-white rounded-2xl border border-border shadow-sm p-8 max-w-lg">
                             {workSubmitted ? (
                                 <div className="text-center py-8">
-                                    <div className="text-5xl mb-3">✅</div>
-                                    <h3 className="text-lg font-bold text-gray-800 mb-1">Entry Submitted!</h3>
-                                    <p className="text-sm text-gray-500">Your work entry is now</p>
-                                    <StatusBadge status="Pending" />
-                                    <p className="text-xs text-gray-400 mt-3">Supervisor will verify soon.</p>
+                                    <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle2 className="h-8 w-8" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-foreground mb-2">Entry Submitted!</h3>
+                                    <p className="text-sm text-muted-foreground">Your work entry is now pending supervisor approval.</p>
                                 </div>
                             ) : (
-                                <form onSubmit={handleWorkSubmit} className="space-y-4">
-                                    {/* Date */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{t("date")}</label>
+                                <form onSubmit={handleWorkSubmit} className="space-y-6">
+                                    <div className="grid gap-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Date</label>
                                         <input
                                             type="date"
                                             value={workForm.date}
                                             disabled
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+                                            className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm text-muted-foreground cursor-not-allowed"
                                         />
                                     </div>
-
-                                    {/* Work Type */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Work Type <span className="text-red-400">*</span></label>
+                                    <div className="grid gap-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Work Type *</label>
                                         <select
                                             value={workForm.type}
                                             onChange={e => setWorkForm({ ...workForm, type: e.target.value })}
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20"
                                             required
                                         >
-
                                             <option value="">Select work type...</option>
                                             {LABOUR_WORK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                         </select>
                                     </div>
-
-                                    {/* Quantity */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Quantity (meters / hours) <span className="text-red-400">*</span></label>
+                                    <div className="grid gap-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quantity (meters) *</label>
                                         <input
                                             type="number"
-                                            min="0"
                                             placeholder="e.g. 10"
                                             value={workForm.qty}
                                             onChange={e => setWorkForm({ ...workForm, qty: e.target.value })}
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20"
                                             required
                                         />
                                     </div>
-
-                                    {/* Photo Upload */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Photo (optional)</label>
-                                        <label className="flex items-center gap-3 border border-dashed border-gray-300 rounded-xl px-4 py-3 cursor-pointer hover:border-emerald-400 transition-colors">
-                                            <span className="text-xl">📷</span>
-                                            <span className="text-sm text-gray-400">{workForm.photo ? workForm.photo.name : "Tap to upload photo"}</span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={e => setWorkForm({ ...workForm, photo: e.target.files[0] })}
-                                            />
-                                        </label>
-                                    </div>
-
-                                    {/* GPS indicator */}
-                                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                                        <span className="text-lg">📍</span>
-                                        <div>
-                                            <div className="text-xs font-semibold text-blue-700">Location</div>
-                                            <div className="text-xs text-blue-500">{labourProfile.site} (auto-detected)</div>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl py-3 transition-colors text-sm mt-2"
-                                    >
-                                        {t("submitWorkEntry")}
-                                    </button>
+                                    <Button type="submit" className="w-full h-12 rounded-xl font-bold">
+                                        Submit Entry
+                                    </Button>
                                 </form>
                             )}
                         </div>
                     )}
 
-                    {/* ── ADD ADVANCE TAB ── */}
+                    {/* Advance Request Form */}
                     {tab === "advance" && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-lg">
+                        <div className="bg-white rounded-2xl border border-border shadow-sm p-8 max-w-lg">
                             {advSubmitted ? (
                                 <div className="text-center py-8">
-                                    <div className="text-5xl mb-3">✅</div>
-                                    <h3 className="text-lg font-bold text-gray-800 mb-1">Advance Request Sent!</h3>
-                                    <StatusBadge status="Pending" />
-                                    <p className="text-xs text-gray-400 mt-3">Supervisor will review your request.</p>
+                                    <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle2 className="h-8 w-8" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-foreground mb-2">Request Sent!</h3>
+                                    <p className="text-sm text-muted-foreground">Your advance request has been notified to the supervisor.</p>
                                 </div>
                             ) : (
-                                <form onSubmit={handleAdvSubmit} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
-                                        <input
-                                            type="date"
-                                            value={advForm.date}
-                                            onChange={e => setAdvForm({ ...advForm, date: e.target.value })}
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Amount (₹) <span className="text-red-400">*</span></label>
+                                <form onSubmit={handleAdvSubmit} className="space-y-6">
+                                    <div className="grid gap-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Amount (₹) *</label>
                                         <input
                                             type="number"
-                                            min="1"
                                             placeholder="e.g. 500"
                                             value={advForm.amount}
                                             onChange={e => setAdvForm({ ...advForm, amount: e.target.value })}
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20"
                                             required
                                         />
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Note (optional)</label>
+                                    <div className="grid gap-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Note (optional)</label>
                                         <textarea
                                             placeholder="Reason for advance..."
                                             value={advForm.note}
                                             onChange={e => setAdvForm({ ...advForm, note: e.target.value })}
                                             rows={3}
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                                            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 resize-none"
                                         />
                                     </div>
-
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl py-3 transition-colors text-sm"
-                                    >
-                                        {t("requestAdvance")}
-                                    </button>
+                                    <Button type="submit" className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700">
+                                        Request Advance
+                                    </Button>
                                 </form>
                             )}
                         </div>
                     )}
 
-                    {/* ── WORK HISTORY TAB ── */}
+                    {/* History */}
                     {tab === "history" && (
-                        <>
-                            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 flex gap-2 items-start mb-4">
-                                <span>📒</span>
-                                <span>This is your complete financial ledger. Green is earnings (work), Red is deductions (payments/advances).</span>
-                            </div>
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
-                                <table className="w-full text-sm min-w-[500px]">
-                                    <thead>
-                                        <tr className="bg-gray-50 border-b border-gray-100">
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("date")}</th>
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("description")}</th>
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("type")}</th>
-                                            <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("amount")}</th>
+                        <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-muted/50">
+                                        <tr>
+                                            <th className="text-left px-6 py-4 text-muted-foreground font-semibold">Date</th>
+                                            <th className="text-left px-6 py-4 text-muted-foreground font-semibold">Description</th>
+                                            <th className="text-left px-6 py-4 text-muted-foreground font-semibold">Type</th>
+                                            <th className="text-left px-6 py-4 text-muted-foreground font-semibold">Amount</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-border/50">
                                         {ledger.length === 0 ? (
-                                            <tr><td colSpan="4" className="text-center py-4 text-gray-400">No transactions found</td></tr>
+                                            <tr><td colSpan="4" className="text-center py-8 text-muted-foreground">No transactions found</td></tr>
                                         ) : (
                                             ledger.map((row, i) => (
-                                                <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-gray-600">{new Date(row.created_at).toLocaleDateString()}</td>
-                                                    <td className="px-4 py-3 text-gray-700 font-medium">{row.description}</td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${row.transaction_type === 'CREDIT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                <tr key={i} className="hover:bg-muted/30 transition-colors">
+                                                    <td className="px-6 py-4 text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</td>
+                                                    <td className="px-6 py-4 font-medium">{row.description}</td>
+                                                    <td className="px-6 py-4">
+                                                        <Badge variant={row.transaction_type === 'CREDIT' ? 'success' : 'destructive'} className="text-[10px]">
                                                             {row.transaction_type}
-                                                        </span>
+                                                        </Badge>
                                                     </td>
-                                                    <td className={`px-4 py-3 font-bold ${row.transaction_type === 'CREDIT' ? 'text-green-600' : 'text-red-600'}`}>
+                                                    <td className={cn(
+                                                        "px-6 py-4 font-bold text-base",
+                                                        row.transaction_type === 'CREDIT' ? "text-emerald-600" : "text-red-600"
+                                                    )}>
                                                         {row.transaction_type === 'CREDIT' ? '+' : '-'} ₹{Number(row.amount).toLocaleString()}
                                                     </td>
                                                 </tr>
@@ -553,109 +518,70 @@ export default function LabourPortal() {
                                     </tbody>
                                 </table>
                             </div>
-                        </>
-                    )}
-
-                    {/* ── PAYMENT HISTORY TAB ── */}
-                    {tab === "payments" && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
-                            <table className="w-full text-sm min-w-[550px]">
-                                <thead>
-                                    <tr className="bg-gray-50 border-b border-gray-100">
-                                        <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("date")}</th>
-                                        <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("workAmt")}</th>
-                                        <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("advance")}</th>
-                                        <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("paid")}</th>
-                                        <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("balance")}</th>
-                                        <th className="text-left px-4 py-3 text-gray-500 font-semibold">{t("status")}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {ledger.filter(l => l.transaction_type === 'DEBIT').length === 0 ? (
-                                        <tr><td colSpan="6" className="text-center py-4 text-gray-400">No payment history found</td></tr>
-                                    ) : (
-                                        ledger.filter(l => l.transaction_type === 'DEBIT').map((row, i) => (
-                                            <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-gray-600">{new Date(row.created_at).toLocaleDateString()}</td>
-                                                <td className="px-4 py-3 text-gray-700 font-medium">₹{Number(row.amount).toLocaleString()}</td>
-                                                <td className="px-4 py-3 text-amber-600">₹0</td>
-                                                <td className="px-4 py-3 text-emerald-600 font-medium">₹{Number(row.amount).toLocaleString()}</td>
-                                                <td className="px-4 py-3 text-gray-600">₹0</td>
-                                                <td className="px-4 py-3"><StatusBadge status="Paid" /></td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
                         </div>
                     )}
 
-                    {/* ── PROFILE TAB ── */}
+                    {/* Profile */}
                     {tab === "profile" && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-md">
-                            {/* Avatar */}
-                            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                                <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-2xl">
+                        <div className="bg-white rounded-2xl border border-border shadow-sm p-8 max-w-md">
+                            <div className="flex flex-col items-center text-center mb-8">
+                                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl mb-4">
                                     {labourProfile.name.split(" ").map(w => w[0]).join("")}
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800">{labourProfile.name}</h3>
-                                    <p className="text-sm text-emerald-500 font-medium">{labourProfile.role}</p>
-                                </div>
+                                <h3 className="text-2xl font-bold text-foreground">{labourProfile.name}</h3>
+                                <p className="text-emerald-600 font-medium">{labourProfile.role}</p>
                             </div>
 
-                            {/* Profile Fields (read-only) */}
-                            {[
-                                { label: "Labour ID", value: labourProfile.id },
-                                { label: "Work Role", value: labourProfile.role },
-                                { label: "Assigned Site", value: labourProfile.site },
-                                { label: "Supervisor", value: labourProfile.supervisor },
-                            ].map((field, i) => (
-                                <div key={i} className="mb-4">
-                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{field.label}</label>
-                                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 font-medium">
-                                        {field.value}
+                            <div className="space-y-4">
+                                {[
+                                    { label: "Labour ID", value: labourProfile.id },
+                                    { label: "Assigned Site", value: labourProfile.site },
+                                    { label: "Supervisor", value: labourProfile.supervisor },
+                                ].map((field, i) => (
+                                    <div key={i}>
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">{field.label}</label>
+                                        <div className="bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm font-medium">
+                                            {field.value}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-
-                            <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-600">
-                                🔒 {t("profileReadOnly")}
+                                ))}
                             </div>
-
-                            <button
-                                onClick={handleLogout}
-                                className="md:hidden w-full mt-6 bg-red-50 text-red-600 font-semibold rounded-xl py-3 text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
-                            >
-                                <LogOut className="h-4.5 w-4.5" strokeWidth={2} />
-                                <span>{t("logout")}</span>
-                            </button>
+                            
+                            <div className="mt-8 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex gap-3 items-start">
+                                <ShieldAlert className="h-4 w-4 text-emerald-600 mt-0.5" />
+                                <p className="text-xs text-emerald-700 leading-relaxed">
+                                    Profile information is verified and can only be updated by your supervisor for security reasons.
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
             </main>
 
-            {/* ── Mobile Bottom Nav ── */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-20 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+            {/* Mobile Bottom Nav */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-border flex items-center justify-around px-2 z-50 shadow-lg">
                 {[
-                    { id: "dashboard", icon: "⊞", label: t("home") },
-                    { id: "work", icon: "✏", label: t("work") },
-                    { id: "advance", icon: "💳", label: t("advance") },
-                    { id: "history", icon: "📋", label: t("history") },
-                    { id: "profile", icon: "👤", label: t("profile") },
+                    { id: "dashboard", icon: LayoutDashboard, label: "Home" },
+                    { id: "work", icon: ClipboardPlus, label: "Work" },
+                    { id: "advance", icon: CreditCard, label: "Cash" },
+                    { id: "history", icon: History, label: "Log" },
+                    { id: "profile", icon: User, label: "Me" },
                 ].map(item => (
                     <button
                         key={item.id}
                         onClick={() => setTab(item.id)}
-                        className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors ${tab === item.id ? "text-emerald-600" : "text-gray-400"
-                            }`}
+                        className={cn(
+                            "flex flex-col items-center justify-center gap-1 w-14",
+                            tab === item.id ? "text-primary" : "text-muted-foreground"
+                        )}
                     >
-                        <span className="text-lg leading-none">{item.icon}</span>
-                        <span>{item.label}</span>
-                        {tab === item.id && <span className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5"></span>}
+                        <item.icon className="h-5 w-5" />
+                        <span className="text-[9px] font-bold uppercase tracking-tighter">{item.label}</span>
+                        {tab === item.id && <div className="w-1 h-1 rounded-full bg-primary" />}
                     </button>
                 ))}
             </nav>
         </div>
     );
 }
+

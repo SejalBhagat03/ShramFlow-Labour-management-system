@@ -25,6 +25,15 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
     Search,
     Filter,
     ClipboardPlus,
@@ -35,13 +44,51 @@ import {
     MapPin,
     Ruler,
     Loader2,
+    Trash2,
+    Paintbrush,
+    Hammer,
+    Zap,
+    LayoutGrid,
+    Truck,
+    Construction,
+    Home,
+    Droplets,
+    HardHat,
+    Users,
+    ExternalLink,
+    IndianRupee
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Users } from 'lucide-react';
-import { TrustScoreBadge } from '@/components/TrustScoreBadge';
 import { translationService } from '@/services/translationService';
+import { projectService } from '@/services/projectService';
+import { useQuery } from '@tanstack/react-query';
+import { useFocusProject } from '@/hooks/useFocusProject';
+import { generateWhatsAppLink, whatsappTemplates } from '@/utils/whatsapp';
 
+const WhatsAppIcon = ({ className }) => (
+    <svg 
+        viewBox="0 0 24 24" 
+        fill="currentColor" 
+        className={className}
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+);
+
+const taskIconMap = {
+    'Brick Laying': Construction,
+    'Wall Painting': Paintbrush,
+    'Wiring': Zap,
+    'Pipe Fitting': Droplets,
+    'Material Transport': Truck,
+    'Carpentry': Hammer,
+    'Plastering': LayoutGrid,
+    'Flooring': LayoutGrid,
+    'Roofing': Home,
+    'Other': HardHat,
+};
 
 const taskTypes = [
     'Brick Laying',
@@ -56,25 +103,40 @@ const taskTypes = [
     'Other',
 ];
 
-/**
- * WorkEntries page component for tracking and managing individual work records.
- * Allows supervisors to record work done by labourers, approve entries, or flag them for review.
- *
- * @returns {JSX.Element} The WorkEntries page component.
- */
 const WorkEntries = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { toast } = useToast();
-    const { workEntries, isLoading, createWorkEntry, approveWorkEntry, approveBulkWorkEntries, flagWorkEntry } = useWorkEntries();
+    const { 
+        workEntries, 
+        isLoading, 
+        createWorkEntry, 
+        approveWorkEntry, 
+        approveBulkWorkEntries, 
+        flagWorkEntry, 
+        deleteWorkEntry 
+    } = useWorkEntries();
+    
     const { labourers } = useLabourers();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [successData, setSuccessData] = useState(null);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [redirectTimer, setRedirectTimer] = useState(null);
+    
+    const [selectedIds, setSelectedIds] = useState([]);
 
-    // Form state
+    const { data: projects = [] } = useQuery({
+        queryKey: ['projects'],
+        queryFn: () => projectService.getProjects(),
+    });
+
+    const { focusProjectId } = useFocusProject();
+
     const [formData, setFormData] = useState({
         labourer_id: '',
+        project_id: '',
         date: new Date().toISOString().split('T')[0],
         task_type: '',
         meters: undefined,
@@ -85,71 +147,66 @@ const WorkEntries = () => {
     });
 
     const filteredEntries = workEntries.filter((entry) => {
-        const labourerName = entry.labourer?.name || '';
+        const labourerName = entry.getLabourerName().toLowerCase();
         const matchesSearch =
-            labourerName.toLowerCase().includes(search.toLowerCase()) ||
+            labourerName.includes(search.toLowerCase()) ||
             entry.task_type.toLowerCase().includes(search.toLowerCase());
         const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
-    const getStatusBadge = (status) => {
-        const styles = {
-            approved: 'bg-success/10 text-success border-success/20',
-            submitted: 'bg-info/10 text-info border-info/20',
-            pending: 'bg-warning/10 text-warning border-warning/20',
-            rejected: 'bg-destructive/10 text-destructive border-destructive/20',
-            flagged: 'bg-destructive/10 text-destructive border-destructive/20',
-            paid: 'bg-primary/10 text-primary border-primary/20',
-            draft: 'bg-muted text-muted-foreground border-muted',
-        };
-        const icons = {
-            approved: CheckCircle,
-            submitted: Clock,
-            pending: Clock,
-            rejected: AlertTriangle,
-            flagged: AlertTriangle,
-            paid: CheckCircle,
-            draft: Clock,
-        };
-        const Icon = icons[status] || Clock;
-        const colorClass = styles[status] || styles.pending;
+    const stats = {
+        totalAmount: filteredEntries.reduce((sum, e) => sum + Number(e.amount), 0),
+        pendingCount: filteredEntries.filter(e => e.status === 'submitted' || e.status === 'pending').length,
+        totalEntries: filteredEntries.length
+    };
 
+    const StatusPill = ({ status }) => {
+        const variants = {
+            approved: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+            submitted: 'bg-blue-50 text-blue-700 border-blue-100',
+            pending: 'bg-amber-50 text-amber-700 border-amber-100',
+            rejected: 'bg-red-50 text-red-700 border-red-100',
+            paid: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+            draft: 'bg-slate-50 text-slate-700 border-slate-100',
+        };
+        
         return (
-            <Badge variant="outline" className={cn('gap-1', colorClass)}>
-                <Icon className="h-3 w-3" />
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
+            <span className={cn(
+                "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                variants[status] || variants.pending
+            )}>
+                {status}
+            </span>
         );
     };
 
-    const getTrustIndicator = (entry) => {
-        // Since we don't store score directly in work_entries yet (it's in logs), 
-        // we can infer it or just show the labourer's overall reliability if we want.
-        // But the user wanted entry-level trust. 
-        // For now, I'll show the labourer's trust score as a hint.
-        return <TrustScoreBadge labourerId={entry.labourer_id} size="sm" />;
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
     };
 
-
-    const handleSave = async () => {
-        if (!formData.labourer_id || !formData.task_type) return;
-        await createWorkEntry.mutateAsync(formData);
-        setIsAddModalOpen(false);
-        resetForm();
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredEntries.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredEntries.map(e => e.id));
+        }
     };
 
-    const resetForm = () => {
-        setFormData({
-            labourer_id: '',
-            date: new Date().toISOString().split('T')[0],
-            task_type: '',
-            meters: undefined,
-            hours: undefined,
-            amount: 0,
-            location: '',
-            description: ''
-        });
+    const handleBulkApprove = async () => {
+        if (selectedIds.length === 0) return;
+        try {
+            await approveBulkWorkEntries.mutateAsync(selectedIds);
+            setSelectedIds([]);
+            toast({
+                title: "Success",
+                description: `${selectedIds.length} entries approved.`
+            });
+        } catch (err) {
+            console.error("Bulk approval failed", err);
+        }
     };
 
     const handleAutoTranslateDescription = async () => {
@@ -160,429 +217,396 @@ const WorkEntries = () => {
                 setFormData(prev => ({ ...prev, description: `${formData.description}\n\n[Hindi: ${hindiDesc}]` }));
             }
         } catch (error) {
-            if (import.meta.env.DEV) console.error("Auto-translation failed:", error);
+            console.error("Auto-translation failed:", error);
         }
     };
 
-    const handleApprove = (entry) => {
-        approveWorkEntry.mutate(entry.id);
-    };
-
-    const handleFlag = (entry) => {
-        const reason = prompt('Enter reason for flagging:');
-        if (reason) {
-            flagWorkEntry.mutate({ id: entry.id, reason });
+    const handleSave = async () => {
+        if (!formData.labourer_id || !formData.task_type) return;
+        try {
+            const result = await createWorkEntry.mutateAsync(formData);
+            setIsAddModalOpen(false);
+            const labourer = labourers.find(l => l.id === formData.labourer_id);
+            const project = projects.find(p => p.id === formData.project_id);
+            setSuccessData({
+                name: labourer?.name || 'Labourer',
+                phone: labourer?.phone || '',
+                date: formData.date,
+                location: formData.location || project?.name || 'Site',
+            });
+            setIsSuccessModalOpen(true);
+            if (labourer?.phone) {
+                const link = generateWhatsAppLink(labourer.phone, whatsappTemplates.bookingConfirmation(labourer.name, formData.date, formData.location || project?.name || 'Site'));
+                const timer = setTimeout(() => window.open(link, '_blank'), 2000);
+                setRedirectTimer(timer);
+            }
+            resetForm();
+        } catch (error) {
+            console.error("Save failed:", error);
         }
     };
 
-    // Calculate amount based on labourer daily rate and hours/meters
+    const resetForm = () => setFormData({ labourer_id: '', project_id: '', date: new Date().toISOString().split('T')[0], task_type: '', meters: undefined, hours: undefined, amount: 0, location: '', description: '' });
+
     const calculateAmount = () => {
         const labourer = labourers.find(l => l.id === formData.labourer_id);
         if (!labourer) return 0;
-
-        if (formData.hours) {
-            return (labourer.daily_rate / 8) * formData.hours;
-        }
-        if (formData.meters) {
-            const rate = labourer.rate_per_meter || 0; // Use rate_per_meter from labourer
-            return formData.meters * rate;
-        }
+        if (formData.hours) return (labourer.daily_rate / 8) * formData.hours;
+        if (formData.meters) return formData.meters * (labourer.rate_per_meter || 0);
         return labourer.daily_rate;
+    };
+
+    React.useEffect(() => {
+        if (formData.labourer_id) {
+            const amount = calculateAmount();
+            if (amount > 0) setFormData(prev => ({ ...prev, amount }));
+        }
+    }, [formData.labourer_id, formData.hours, formData.meters]);
+
+    const handleDelete = (entry) => {
+        if (window.confirm(`Are you sure you want to delete this work entry?`)) {
+            deleteWorkEntry.mutate(entry.id);
+        }
     };
 
     return (
         <AppLayout>
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-6">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Project Tracking</span>
-                            </div>
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t('workEntries')}</h1>
-                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
-                                {filteredEntries.length} entries recorded • Track progress & approve work
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="py-2.5 px-3 rounded-xl bg-background/50 backdrop-blur-sm border text-xs font-bold h-auto"
-                                onClick={() => setIsAddModalOpen(true)}
-                            >
-                                <ClipboardPlus className="h-3.5 w-3.5 sm:mr-2" />
-                                <span className="hidden sm:inline">{t('singleLabour')}</span>
-                            </Button>
-                            <Button
-                                size="sm"
-                                className="py-2.5 px-4 rounded-xl gradient-primary shadow-glow text-xs font-bold h-auto"
-                                onClick={() => navigate('/work-entries/group')}
-                            >
-                                <Users className="h-3.5 w-3.5 sm:mr-2" />
-                                <span className="hidden sm:inline">{t('groupEntryMultiLabour')}</span>
-                                <span className="sm:hidden">Group</span>
-                            </Button>
-                        </div>
+            <div className="space-y-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Work Entries</h1>
+                        <p className="text-sm text-muted-foreground mt-1">Record and approve labour activities across sites.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            className="rounded-xl h-10 px-4 font-bold border-border hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                            onClick={() => setIsAddModalOpen(true)}
+                        >
+                            <ClipboardPlus className="h-4 w-4 mr-2" />
+                            Single Entry
+                        </Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-6 rounded-xl"
+                            onClick={() => navigate('/work-entries/group')}
+                        >
+                            <Users className="h-4 w-4 mr-2" />
+                            Group Entry
+                        </Button>
                     </div>
                 </div>
 
-                {/* Main Content Sections */}
-                <div className="space-y-6">
-                    {/* Filters Section */}
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-6 bg-card p-4 md:p-6 rounded-2xl border shadow-sm">
+                {/* Filters and Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="md:col-span-3 flex flex-col md:flex-row gap-4">
                         <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder={`${t('search')} by name, task...`}
-                                className="pl-11 py-2 px-3 h-10 md:h-11 bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 rounded-xl text-xs sm:text-sm"
+                                placeholder="Search by name or task..."
+                                className="pl-10 h-10 bg-white border-border rounded-xl text-sm"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full sm:w-48 h-10 md:h-11 bg-muted/40 border-none rounded-xl px-4 text-xs">
-                                <div className="flex items-center gap-2">
-                                    <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <SelectValue placeholder={t('status')} />
-                                </div>
+                            <SelectTrigger className="w-full md:w-48 h-10 bg-white border-border rounded-xl text-xs font-medium">
+                                <SelectValue placeholder="All Status" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
                                 <SelectItem value="all">All Status</SelectItem>
                                 <SelectItem value="submitted">Submitted</SelectItem>
                                 <SelectItem value="approved">Approved</SelectItem>
                                 <SelectItem value="rejected">Rejected</SelectItem>
-                                <SelectItem value="paid">Paid</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Entries List */}
-                    {isLoading ? (
-                        <div className="space-y-3">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <Skeleton key={i} className="h-32 rounded-xl" />
-                            ))}
+                    <div className="bg-white p-4 rounded-xl border border-border flex items-center gap-3 shadow-sm">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                            <IndianRupee className="h-5 w-5" />
                         </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {Object.entries(
-                                filteredEntries.reduce((groups, entry) => {
-                                    const key = entry.group_id || `single-${entry.id}`;
-                                    if (!groups[key]) groups[key] = [];
-                                    groups[key].push(entry);
-                                    return groups;
-                                }, {})
-                            ).map(([groupId, entries], index) => {
-                                const isGroup = entries.length > 1;
-                                // If it's a group, use the first entry for common details
-                                const mainEntry = entries[0];
-                                const totalAmount = entries.reduce((sum, e) => sum + Number(e.amount), 0);
-                                const totalMeters = entries.reduce((sum, e) => sum + (Number(e.meters) || 0), 0);
-
-                                return (
-                                    <div
-                                        key={groupId}
-                                        className={cn(
-                                            'bg-card rounded-xl border p-4 shadow-card transition-all duration-200 hover:shadow-lg animate-slide-up',
-                                            mainEntry.status === 'flagged' && 'border-destructive/30 bg-destructive/5'
-                                        )}
-                                        style={{ animationDelay: `${index * 50}ms` }}
-                                    >
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div>
-                                                        <h3 className="font-semibold text-foreground flex items-center gap-2">
-                                                            {isGroup ? (
-                                                                <>
-                                                                    <Users className="h-4 w-4 text-primary" />
-                                                                    <span>Group Work ({entries.length} Labourers)</span>
-                                                                </>
-                                                            ) : (
-                                                                mainEntry.labourer?.name || 'Unknown'
-                                                            )}
-                                                        </h3>
-                                                        <p className="text-sm text-primary font-medium">{mainEntry.task_type}</p>
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-2">
-                                                        {getStatusBadge(mainEntry.status)}
-                                                        {getTrustIndicator(mainEntry)}
-                                                    </div>
-                                                </div>
-
-
-                                                {mainEntry.description && (
-                                                    <p className="text-sm text-muted-foreground">{mainEntry.description}</p>
-                                                )}
-
-                                                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="h-3.5 w-3.5" />
-                                                        {mainEntry.date}
-                                                    </div>
-                                                    {mainEntry.location && (
-                                                        <div className="flex items-center gap-1">
-                                                            <MapPin className="h-3.5 w-3.5" />
-                                                            {mainEntry.location}
-                                                        </div>
-                                                    )}
-                                                    {totalMeters > 0 && (
-                                                        <div className="flex items-center gap-1">
-                                                            <Ruler className="h-3.5 w-3.5" />
-                                                            {totalMeters}m
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Expandable details for group members would go here, maybe a simple list for now */}
-                                                {isGroup && (
-                                                    <div className="pt-2 text-xs text-muted-foreground">
-                                                        <p>Members: {entries.map(e => e.labourer?.name).join(', ')}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex flex-col items-end gap-2">
-                                                <p className="text-xl font-bold text-foreground">₹{totalAmount.toLocaleString()}</p>
-
-                                                {/* Actions for the whole group or individual */}
-                                                {(mainEntry.status === 'submitted' || mainEntry.status === 'pending') && (
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            className="bg-success hover:bg-success/90 text-white"
-                                                            onClick={() => approveBulkWorkEntries.mutate(entries.map(e => e.id))}
-                                                            disabled={approveBulkWorkEntries.isPending}
-                                                        >
-                                                            {approveBulkWorkEntries.isPending ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                'Approve'
-                                                            )}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            onClick={() => handleFlag(mainEntry)} // Reject logic
-                                                        >
-                                                            Reject
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                                {mainEntry.status === 'rejected' && (
-                                                    <p className="text-xs text-destructive italic mt-1">Reason: {mainEntry.rejected_reason}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Value</p>
+                            <p className="text-sm font-bold text-foreground">₹{stats.totalAmount.toLocaleString()}</p>
                         </div>
-                    )}
+                    </div>
+                </div>
 
-                    {!isLoading && filteredEntries.length === 0 && (
-                        <div className="text-center py-12">
-                            <p className="text-muted-foreground">{t('noData')}</p>
-                            <Button className="mt-4" onClick={() => setIsAddModalOpen(true)}>
-                                <ClipboardPlus className="h-4 w-4 mr-2" />
-                                Add your first work entry
+                {/* Bulk Actions */}
+                {selectedIds.length > 0 && (
+                    <div className="bg-emerald-600 p-4 rounded-2xl shadow-lg text-white flex items-center justify-between animate-in slide-in-from-top-5 duration-300">
+                        <div className="flex items-center gap-4">
+                            <Checkbox 
+                                checked={selectedIds.length === filteredEntries.length} 
+                                onCheckedChange={toggleSelectAll}
+                                className="border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600"
+                            />
+                            <span className="text-sm font-bold">{selectedIds.length} entries selected</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="ghost" 
+                                className="h-9 px-4 text-white hover:bg-white/10 font-bold text-xs"
+                                onClick={() => setSelectedIds([])}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                className="bg-white text-emerald-600 hover:bg-white/90 font-bold h-9 px-6 rounded-xl text-xs"
+                                onClick={handleBulkApprove}
+                                disabled={approveBulkWorkEntries.isPending}
+                            >
+                                Approve Selected
                             </Button>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* Add Work Entry Modal */}
-                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
-                                <DialogTitle>{t('addWorkEntry')}</DialogTitle>
-                                <DialogDescription className="text-xs">Record a new work entry for a labourer.</DialogDescription>
-                            </DialogHeader>
+                {/* Table */}
+                <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-muted/30 border-border hover:bg-muted/30">
+                                <TableHead className="w-12 pl-6">
+                                    <Checkbox 
+                                        checked={selectedIds.length === filteredEntries.length && filteredEntries.length > 0} 
+                                        onCheckedChange={toggleSelectAll}
+                                        className="border-muted-foreground/30"
+                                    />
+                                </TableHead>
+                                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4">Labourer</TableHead>
+                                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Work Details</TableHead>
+                                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Amount</TableHead>
+                                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</TableHead>
+                                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pr-6 text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                [1, 2, 3].map(i => (
+                                    <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-12 w-full rounded-lg" /></TableCell></TableRow>
+                                ))
+                            ) : filteredEntries.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="py-20 text-center">
+                                        <LayoutGrid className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-20" />
+                                        <h3 className="text-sm font-bold text-foreground">No entries found</h3>
+                                        <p className="text-xs text-muted-foreground mt-1">Start by recording a new work entry.</p>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredEntries.map((entry) => (
+                                    <TableRow key={entry.id} className="border-border hover:bg-muted/10">
+                                        <TableCell className="pl-6">
+                                            <Checkbox 
+                                                checked={selectedIds.includes(entry.id)} 
+                                                onCheckedChange={() => toggleSelect(entry.id)}
+                                                className="border-muted-foreground/30"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <p className="font-bold text-foreground text-sm">{entry.getLabourerName()}</p>
+                                                <p className="text-[10px] text-muted-foreground">{entry.getProjectName()}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <p className="font-bold text-foreground text-xs">{entry.task_type}</p>
+                                                <p className="text-[10px] text-muted-foreground">{entry.date} • {entry.meters ? `${entry.meters}m` : (entry.hours ? `${entry.hours}h` : 'Full Day')}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-bold text-sm text-foreground">₹{entry.amount.toLocaleString()}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <StatusPill status={entry.status} />
+                                        </TableCell>
+                                        <TableCell className="pr-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {(entry.status === 'submitted' || entry.status === 'pending') && (
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                                                        onClick={() => approveWorkEntry.mutate(entry.id)}
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDelete(entry)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
 
-                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t('assignTo')} *</Label>
-                                    <Select
-                                        value={formData.labourer_id}
-                                        onValueChange={(value) => setFormData({ ...formData, labourer_id: value })}
-                                    >
-                                        <SelectTrigger className="h-9 text-sm">
-                                            <SelectValue placeholder="Select labourer" />
+                {/* Modal */}
+                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                    <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+                        <div className="p-6 border-b border-border bg-white">
+                            <DialogTitle className="text-xl font-bold">New Work Entry</DialogTitle>
+                            <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">
+                                Record work details for a labourer at a project site.
+                            </DialogDescription>
+                        </div>
+
+                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                            <div className="grid gap-2">
+                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Assign Labourer</Label>
+                                <Select value={formData.labourer_id} onValueChange={(v) => setFormData({ ...formData, labourer_id: v })}>
+                                    <SelectTrigger className="h-11 rounded-xl text-sm border-border">
+                                        <SelectValue placeholder="Select labourer" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {labourers.filter(l => l.status === 'active').map(l => (
+                                            <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Project Site</Label>
+                                <Select value={formData.project_id} onValueChange={(v) => setFormData({ ...formData, project_id: v })}>
+                                    <SelectTrigger className="h-11 rounded-xl text-sm border-border">
+                                        <SelectValue placeholder="Select site" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {projects.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Date</Label>
+                                    <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="h-11 rounded-xl text-sm border-border" />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Task Type</Label>
+                                    <Select value={formData.task_type} onValueChange={v => setFormData({ ...formData, task_type: v })}>
+                                        <SelectTrigger className="h-11 rounded-xl text-sm border-border">
+                                            <SelectValue placeholder="Select task" />
                                         </SelectTrigger>
-                                        <SelectContent>
-                                            {labourers
-                                                .filter((l) => l.status === 'active')
-                                                .map((labour) => (
-                                                    <SelectItem key={labour.id} value={labour.id}>
-                                                        {labour.name} - ₹{labour.daily_rate}/day
-                                                    </SelectItem>
-                                                ))}
+                                        <SelectContent className="rounded-xl">
+                                            {taskTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold">{t('date')} *</Label>
-                                        <Input
-                                            type="date"
-                                            value={formData.date}
-                                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold">{t('taskType')} *</Label>
-                                        <Select
-                                            value={formData.task_type}
-                                            onValueChange={(value) => setFormData({ ...formData, task_type: value })}
-                                        >
-                                            <SelectTrigger className="h-9 text-sm">
-                                                <SelectValue placeholder="Select task" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {taskTypes.map((type) => (
-                                                    <SelectItem key={type} value={type}>
-                                                        {type}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Meters / Units</Label>
+                                    <Input type="number" placeholder="0" value={formData.meters || ''} onChange={e => setFormData({ ...formData, meters: Number(e.target.value) })} className="h-11 rounded-xl text-sm border-border" />
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold">{t('meters')} (optional)</Label>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            value={formData.meters || ''}
-                                            onChange={(e) => setFormData({ ...formData, meters: e.target.value ? Number(e.target.value) : undefined })}
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold">{t('hours')} (optional)</Label>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            value={formData.hours || ''}
-                                            onChange={(e) => setFormData({ ...formData, hours: e.target.value ? Number(e.target.value) : undefined })}
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t('location')}</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="Site A - Block 3"
-                                            value={formData.location}
-                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                            className="h-9 text-sm"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            className="h-9 w-9 shrink-0"
-                                            onClick={() => {
-                                                if (navigator.geolocation) {
-                                                    navigator.geolocation.getCurrentPosition(
-                                                        (position) => {
-                                                            const { latitude, longitude } = position.coords;
-                                                            const formattedLocation = `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`;
-                                                            
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                latitude,
-                                                                longitude,
-                                                                location: formattedLocation
-                                                            }));
-                                                            toast({
-                                                                title: "Location Captured",
-                                                                description: "Coordinates added to record.",
-                                                            });
-                                                        },
-                                                        (error) => {
-                                                            console.error("Location error:", error);
-                                                            let msg = "Could not capture location.";
-                                                            if (error.code === 1) msg = "Location permission denied.";
-                                                            toast({
-                                                                title: "Location Error",
-                                                                description: msg,
-                                                                variant: "destructive"
-                                                            });
-                                                        }
-                                                    );
-                                                } else {
-                                                    toast({
-                                                        title: "Not Supported",
-                                                        description: "Geolocation is not supported by this browser.",
-                                                        variant: "destructive"
-                                                    });
-                                                }
-                                            }}
-                                            title="Capture Current Location"
-                                        >
-                                            <MapPin className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t('description')}</Label>
-                                    <Textarea
-                                        placeholder="Describe the work done..."
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        onBlur={handleAutoTranslateDescription}
-                                        className="min-h-[80px] text-sm resize-none"
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t('totalAmount')} (₹) *</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        value={formData.amount || ''}
-                                        onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
-                                        className="h-9 text-sm font-semibold"
-                                    />
-                                    <p className="text-[10px] text-muted-foreground font-medium">
-                                        Suggested: ₹{calculateAmount().toLocaleString()}
-                                    </p>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Hours</Label>
+                                    <Input type="number" placeholder="0" value={formData.hours || ''} onChange={e => setFormData({ ...formData, hours: Number(e.target.value) })} className="h-11 rounded-xl text-sm border-border" />
                                 </div>
                             </div>
 
-                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
-                                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)}>
-                                    {t('cancel')}
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    className="gradient-primary"
-                                    onClick={handleSave}
-                                    disabled={!formData.labourer_id || !formData.task_type || !formData.amount || createWorkEntry.isPending}
+                            <div className="grid gap-2">
+                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Amount (₹)</Label>
+                                <Input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })} className="h-11 rounded-xl text-sm font-bold border-border" />
+                                <p className="text-[10px] text-muted-foreground">Suggested: ₹{calculateAmount().toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-muted/20 border-t border-border flex justify-end gap-3">
+                            <Button variant="ghost" className="h-11 px-6 rounded-xl font-bold" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                            <Button
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white h-11 px-8 rounded-xl font-bold"
+                                onClick={handleSave}
+                                disabled={createWorkEntry.isPending}
+                            >
+                                {createWorkEntry.isPending ? "Saving..." : "Save Entry"}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Success Modal */}
+                <Dialog open={isSuccessModalOpen} onOpenChange={(open) => {
+                    if (!open && redirectTimer) clearTimeout(redirectTimer);
+                    setIsSuccessModalOpen(open);
+                }}>
+                    <DialogContent className="sm:max-w-md text-center py-8">
+                        <div className="mx-auto w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mb-4">
+                            <CheckCircle className="h-10 w-10 text-success" />
+                        </div>
+                        <DialogHeader>
+                            <DialogTitle className="text-xl text-center">Work Entry Saved! ✅</DialogTitle>
+                            <DialogDescription className="text-center pt-2">
+                                The record for <strong>{successData?.name}</strong> has been successfully added.
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="bg-muted/30 p-4 rounded-xl text-sm space-y-2 my-4">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Date:</span>
+                                <span className="font-medium">{successData?.date}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Location:</span>
+                                <span className="font-medium">{successData?.location}</span>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            {successData?.phone && (
+                                <p className="text-xs text-muted-foreground animate-pulse">
+                                    Redirecting to WhatsApp in 2 seconds...
+                                </p>
+                            )}
+                            
+                            <div className="flex flex-col gap-2">
+                                {successData?.phone && (
+                                    <Button 
+                                        className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white font-bold h-12 rounded-xl border-none"
+                                        onClick={() => {
+                                            if (redirectTimer) clearTimeout(redirectTimer);
+                                            window.open(generateWhatsAppLink(
+                                                successData.phone,
+                                                whatsappTemplates.bookingConfirmation(
+                                                    successData.name,
+                                                    successData.date,
+                                                    successData.location
+                                                )
+                                            ), '_blank');
+                                        }}
+                                    >
+                                        <WhatsAppIcon className="h-5 w-5 mr-2" />
+                                        Send WhatsApp Now
+                                    </Button>
+                                )}
+                                <Button 
+                                    variant="ghost" 
+                                    className="w-full h-11 rounded-xl"
+                                    onClick={() => {
+                                        if (redirectTimer) clearTimeout(redirectTimer);
+                                        setIsSuccessModalOpen(false);
+                                    }}
                                 >
-                                    {createWorkEntry.isPending ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        t('save')
-                                    )}
+                                    Done / Cancel Redirect
                                 </Button>
                             </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

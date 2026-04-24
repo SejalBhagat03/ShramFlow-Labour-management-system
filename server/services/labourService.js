@@ -46,8 +46,20 @@ class LabourService {
 
         // 4. Calculate summaries
         const totalEarned = workEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
-        const totalPaid = payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
-        const balance = totalEarned - totalPaid;
+        
+        let totalPaid = 0;
+        let totalDeductions = 0;
+
+        payments.forEach(payment => {
+            if (payment.payment_type === 'deduction') {
+                totalDeductions += (Number(payment.amount) || 0);
+            } else {
+                totalPaid += (Number(payment.amount) || 0);
+            }
+        });
+
+        // Balance = Earned - Paid - Deducted
+        const balance = totalEarned - totalPaid - totalDeductions;
 
         return {
             labourId,
@@ -56,6 +68,7 @@ class LabourService {
             phone: labour.phone,
             totalEarned,
             totalPaid,
+            totalDeductions,
             balance,
             entries: workEntries,
             payments: payments

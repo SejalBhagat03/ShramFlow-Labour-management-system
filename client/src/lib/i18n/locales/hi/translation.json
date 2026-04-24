@@ -1,4 +1,4 @@
-﻿{
+{
     "appName": "श्रमफ्लो",
     "tagline": "श्रम प्रबंधन सरल बनाया",
     "login": "लॉगिन",
@@ -371,5 +371,8 @@
     "painter": "पेंटर",
     "electrician": "इलेक्ट्रीशियन",
     "plumber": "प्लम्बर",
-    "carpenter": "बढ़ई"
+    "carpenter": "बढ़ई",
+    "offlineStatus": "ऑफ़लाइन मोड",
+    "connectionRestored": "कनेक्शन बहाल",
+    "noInternetConnection": "इंटरनेट कनेक्शन नहीं है"
 }

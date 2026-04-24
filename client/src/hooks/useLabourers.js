@@ -1,32 +1,52 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { offlineSyncService } from '@/services/offlineSyncService';
 
 export const useLabourers = () => {
-    const { user } = useAuth();
+    const { user, session } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
     const { data: labourers = [], isLoading, error } = useQuery({
-        queryKey: ['labourers', user?.id],
+        queryKey: ['labourers', user?.id, user?.organization_id],
         queryFn: async () => {
-            if (!user) return [];
+            const orgId = user?.organization_id;
+            const isValidOrg = orgId && orgId !== 'null' && orgId !== 'undefined';
+
+            if (!user || !isValidOrg) return [];
             // only supervisors/admins should ever fetch the full list
             if (user.role !== 'supervisor') {
                 // return empty array rather than letting RLS 400
                 return [];
             }
 
-            const { data, error } = await supabase
-                .from('labourers')
-                .select('*')
-                .order('created_at', { ascending: false });
+            try {
+                const { data, error } = await supabase
+                    .from('labourers')
+                    .select('*')
+                    .eq('organization_id', user.organization_id)
+                    .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            return data;
+                if (error) throw error;
+                
+                // Cache for offline use
+                await offlineSyncService.cacheMetadata('labourers', data);
+                return data;
+            } catch (err) {
+                // If offline, try to get from cache
+                if (!navigator.onLine) {
+                    const cached = await offlineSyncService.getCachedMetadata('labourers');
+                    if (cached) {
+                        console.log("Using cached labourers (offline)");
+                        return cached;
+                    }
+                }
+                throw err;
+            }
         },
-        enabled: !!user
+        enabled: !!user && !!user.organization_id && user.organization_id !== 'null' && user.organization_id !== 'undefined'
     });
 
     const createLabourer = useMutation({
@@ -38,17 +58,19 @@ export const useLabourers = () => {
 
             let labourUserId = null;
 
+            // Validate if a password was actually provided (not undefined, null, or empty string)
+            const hasPassword = formData.password && formData.password !== 'undefined' && formData.password !== 'null' && formData.password.trim() !== '';
+
             // Generate email from phone if password is provided (Login enabled)
             let emailToUse = formData.email;
-            if (formData.password && !emailToUse && formData.phone) {
+            if (hasPassword && !emailToUse && formData.phone) {
                 // Remove non-digits for cleaner username
                 const cleanPhone = formData.phone.replace(/\D/g, '');
-                emailToUse = `${cleanPhone}@shramflow.com`;
                 emailToUse = `${cleanPhone}@shramflow.com`;
             }
 
             // If email (or auto-generated email) and password provided, create a user account
-            if (emailToUse && formData.password) {
+            if (emailToUse && hasPassword) {
                 // Client-side validation
                 if (formData.password.length < 6) {
                     throw new Error('Password must be at least 6 characters');
@@ -60,12 +82,16 @@ export const useLabourers = () => {
                     throw new Error('Invalid email format (or phone number invalid)');
                 }
 
-                const { data: funcData, error: funcError } = await supabase.functions.invoke('create-labour-user', {
+                const { data: funcData, error: funcError } = await supabase.functions.invoke('create-labour-user-', {
                     body: {
                         email: emailToUse,
                         password: formData.password,
                         fullName: formData.name,
-                        phone: formData.phone
+                        phone: formData.phone,
+                        orgId: user.organization_id
+                    },
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`
                     }
                 });
 
@@ -99,6 +125,7 @@ export const useLabourers = () => {
             const { data, error } = await supabase
                 .from('labourers')
                 .insert({
+                    organization_id: user.organization_id,
                     supervisor_id: user.id,
                     user_id: labourUserId,
                     name: formData.name,
@@ -172,12 +199,17 @@ export const useLabourers = () => {
 
     const deleteLabourer = useMutation({
         mutationFn: async (id) => {
-            const { error } = await supabase
-                .from('labourers')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
+            const token = session?.access_token;
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to delete labourer');
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['labourers'] });

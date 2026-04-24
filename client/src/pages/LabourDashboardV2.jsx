@@ -1,12 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/AppLayout';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useLabourAssignments } from '@/hooks/useLabourAssignments';
 import { useUpdateLabourClaim } from '@/hooks/useUpdateLabourClaim';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
-
+import { Loader2, Wallet, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { useLabourFinancials } from '@/hooks/useLabourFinancials';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 /**
  * Labour dashboard v2 allows a labourer to view assigned work,
  * submit labour_claims and see confirmed work/payment.
@@ -15,6 +18,7 @@ const LabourDashboardV2 = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const { assignments = [], isLoading } = useLabourAssignments({ labourerId: user?.id });
+    const { data: financials, isLoading: isFinLoading } = useLabourFinancials();
     const updateClaimMutation = useUpdateLabourClaim();
 
     // local state for form values per assignment id
@@ -59,6 +63,43 @@ const LabourDashboardV2 = () => {
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("yourAssignments")}</h1>
                         <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Track your work and submit claims</p>
                     </div>
+                </div>
+
+                {/* Financial Overview Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                    <Card className="bg-success/5 border-none rounded-2xl shadow-sm">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] uppercase font-bold text-success/70 tracking-wider">Total Earned</p>
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {isFinLoading ? "..." : `₹${(financials?.totalEarned || 0).toLocaleString()}`}
+                                </h3>
+                            </div>
+                            <TrendingUp className="h-8 w-8 text-success/20" />
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-blue-500/5 border-none rounded-2xl shadow-sm">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] uppercase font-bold text-blue-600/70 tracking-wider">Total Paid</p>
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {isFinLoading ? "..." : `₹${(financials?.totalPaid || 0).toLocaleString()}`}
+                                </h3>
+                            </div>
+                            <CheckCircle2 className="h-8 w-8 text-blue-500/20" />
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-primary/5 border-none rounded-2xl shadow-sm border-l-4 border-l-primary">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] uppercase font-bold text-primary tracking-wider">Current Balance</p>
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {isFinLoading ? "..." : `₹${(financials?.balance || 0).toLocaleString()}`}
+                                </h3>
+                            </div>
+                            <Wallet className="h-8 w-8 text-primary/20" />
+                        </CardContent>
+                    </Card>
                 </div>
                 {isLoading ? (
                     <p>Loading...</p>

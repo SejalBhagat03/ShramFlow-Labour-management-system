@@ -1,4 +1,4 @@
-﻿{
+{
     "appName": "ShramFlow",
     "tagline": "Labour Management Made Simple",
     "login": "Login",
@@ -369,5 +369,8 @@
     "painter": "Painter",
     "electrician": "Electrician",
     "plumber": "Plumber",
-    "carpenter": "Carpenter"
+    "carpenter": "Carpenter",
+    "offlineStatus": "Offline Mode",
+    "connectionRestored": "Connection Restored",
+    "noInternetConnection": "No Internet Connection"
 }

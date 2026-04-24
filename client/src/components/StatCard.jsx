@@ -14,70 +14,35 @@ import { cn } from "@/lib/utils";
  * @param {string} [props.className] - Additional CSS classes.
  * @returns {JSX.Element} The StatCard component.
  */
-export const StatCard = React.memo(({ title, value, icon: Icon, trend, variant = "default", className }) => {
-    const variants = {
-        default: "bg-card gradient-card border-border/50",
-        primary: "gradient-primary border-primary/20",
-        warning: "bg-gradient-to-br from-warning/5 via-warning/10 to-warning/5 border-warning/30",
-        success: "bg-gradient-to-br from-success/5 via-success/10 to-success/5 border-success/30",
-    };
-
-    const iconVariants = {
-        default: "bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-glow-sm",
-        primary: "bg-primary-foreground/20 text-primary-foreground backdrop-blur-sm",
-        warning: "bg-gradient-to-br from-warning/25 to-warning/10 text-warning",
-        success: "bg-gradient-to-br from-success/25 to-success/10 text-success",
-    };
-
-    const textVariants = {
-        default: "text-foreground",
-        primary: "text-primary-foreground",
-        warning: "text-foreground",
-        success: "text-foreground",
-    };
-
+export const StatCard = React.memo(({ title, value, icon: Icon, trend, className }) => {
     return (
         <div
             className={cn(
-                "relative group rounded-2xl border p-4 md:p-5 shadow-card transition-all duration-300",
-                "hover:shadow-lg hover:-translate-y-0.5",
-                "animate-fade-in overflow-hidden",
-                variants[variant],
+                "bg-white rounded-2xl border border-border p-6 shadow-sm transition-all duration-200 hover:border-emerald-200",
                 className,
             )}
         >
-            {/* Subtle shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-            <div className="relative flex items-start justify-between gap-3 md:gap-4">
-                <div className="space-y-2 md:space-y-3 flex-1">
-                    <p
-                        className={cn(
-                            "text-xs md:text-sm font-medium tracking-wide",
-                            variant === "primary" ? "text-primary-foreground/80" : "text-muted-foreground",
-                        )}
-                    >
+            <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         {title}
                     </p>
-                    <p className={cn("text-2xl md:text-3xl font-bold tracking-tight", textVariants[variant])}>{value}</p>
+                    <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
+                    
                     {trend && (
-                        <div
-                            className={cn(
-                                "inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full",
-                                trend.positive ? "text-success bg-success/10" : "text-destructive bg-destructive/10",
-                            )}
-                        >
-                            <span className="text-sm">{trend.positive ? "↑" : "↓"}</span>
-                            {Math.abs(trend.value)}% from yesterday
+                        <div className="mt-2 flex items-center gap-1.5">
+                            <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
+                                trend.positive ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"
+                            )}>
+                                {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-medium">vs last week</span>
                         </div>
                     )}
                 </div>
-                <div
-                    className={cn(
-                        "rounded-xl p-3.5 transition-transform duration-300 group-hover:scale-110",
-                        iconVariants[variant],
-                    )}
-                >
+                
+                <div className="rounded-xl p-2 bg-emerald-50 text-emerald-600">
                     <Icon className="h-5 w-5" strokeWidth={2.5} />
                 </div>
             </div>

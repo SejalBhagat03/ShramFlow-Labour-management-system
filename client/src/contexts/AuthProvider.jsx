@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { AuthContext } from './AuthContext';
 import { supabase } from '@/lib/supabase';
 import { authService } from '@/services/authService';
 
-const AuthContext = createContext({});
-
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
+    const [session, setSession] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     // Use a ref for the auth state listener to avoid stale closure issues
     const userRef = useRef(null);
@@ -69,6 +69,7 @@ export function AuthProvider({ children }) {
         const handleAuthState = async (session, source = 'unknown') => {
             if (!mounted) return;
 
+            setSession(session);
             if (!session?.user) {
                 setUser(null);
                 setIsLoading(false);
@@ -95,10 +96,40 @@ export function AuthProvider({ children }) {
 
         const init = async () => {
             try {
-                const session = await authService.getSession();
+                // Shorter timeout (3s) for initial load to prevent hanging on slow networks
+                const session = await Promise.race([
+                    authService.getSession(),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('session fetch timeout')), 3000)
+                    )
+                ]);
                 await handleAuthState(session, 'init');
             } catch (err) {
-                if (mounted) setIsLoading(false);
+                // Only log if we're actually online and NOT on a flaky connection
+                if (navigator.onLine && !err.message.includes('timeout')) {
+                    console.warn(`[AuthContext] Init session check failed: ${err.message}`);
+                } else if (import.meta.env.DEV && navigator.onLine) {
+                    console.debug(`[AuthContext] Init session check timed out (online).`);
+                }
+                
+                if (mounted) {
+                    await attemptRecovery();
+                }
+            }
+        };
+
+        const attemptRecovery = async () => {
+            if (!mounted) return;
+            // Try to get local session synchronously from Supabase storage
+            try {
+                const { data: { session: localSession } } = await supabase.auth.getSession();
+                if (localSession) {
+                    await handleAuthState(localSession, 'init-recovery');
+                } else {
+                    setIsLoading(false);
+                }
+            } catch (innerErr) {
+                setIsLoading(false);
             }
         };
 
@@ -109,8 +140,10 @@ export function AuthProvider({ children }) {
                 if (event === 'SIGNED_OUT') {
                     lastUserId = null;
                     setUser(null);
+                    setSession(null);
                     setIsLoading(false);
                 } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+                    setSession(session);
                     // Use ref to check current state in the listener
                     const currentUser = userRef.current;
                     if (!currentUser || currentUser.isFallback || (session?.user && session.user.id !== currentUser.id)) {
@@ -144,10 +177,17 @@ export function AuthProvider({ children }) {
         try {
             // Add safety timeout to sign up
             return await Promise.race([
-                supabase.auth.signUp(
-                    { email, password },
-                    { data: { full_name: fullName, phone, role } }
-                ),
+                supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            phone,
+                            role
+                        }
+                    }
+                }),
                 new Promise((_, rej) => setTimeout(() => rej(new Error('signup timeout')), 30000))
             ]);
         } catch (err) {
@@ -161,6 +201,7 @@ export function AuthProvider({ children }) {
             value={{
                 user,
                 isAuthenticated: !!user,
+                session,
                 isLoading,
                 login,
                 signup,
@@ -172,6 +213,4 @@ export function AuthProvider({ children }) {
     );
 }
 
-export function useAuth() {
-    return useContext(AuthContext);
-}
+// No default export of Context to prevent Vite HMR incompatibility

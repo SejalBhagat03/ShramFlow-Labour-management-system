@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/AppLayout';
 import { useLabourers } from '@/hooks/useLabourers';
+import { useProjects } from '@/hooks/useProjects';
+import { useFocusProject } from '@/hooks/useFocusProject';
 import { workService } from '@/services/workService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +24,28 @@ import { AlertCircle, Users, MapPin, Ruler, Save, Plus, ArrowLeft, Edit, UserPlu
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { generateWhatsAppLink, whatsappTemplates } from '@/utils/whatsapp';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { CheckCircle, ExternalLink, Sparkles, Target } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+
+const WhatsAppIcon = ({ className }) => (
+    <svg 
+        viewBox="0 0 24 24" 
+        fill="currentColor" 
+        className={className}
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+);
 
 
 const taskKeys = [
@@ -45,7 +69,10 @@ const GroupWorkEntry = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { labourers, isLoading: isLoadingLabourers } = useLabourers();
+    const { projects } = useProjects();
+    const { focusProjectId } = useFocusProject();
 
+    const [projectId, setProjectId] = useState(focusProjectId || '');
     const [step, setStep] = useState(1); // 1: Setup, 2: Finalize meters
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [location, setLocation] = useState('');
@@ -55,6 +82,10 @@ const GroupWorkEntry = () => {
     const [labourMeters, setLabourMeters] = useState({}); // { labourId: meters }
     const [tempRates, setTempRates] = useState({}); // { labourId: rate }
     const [isEditMode, setIsEditMode] = useState(false);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [savedWorkers, setSavedWorkers] = useState([]); 
+    const [cloneLoading, setCloneLoading] = useState(false);
+    const [yesterdayFound, setYesterdayFound] = useState(false);
 
     // Multi-select logic
     const toggleLabour = (labourId) => {
@@ -84,6 +115,42 @@ const GroupWorkEntry = () => {
 
     const remainingMeters = totalArea - sumIndividualMeters;
     const isOverLimit = sumIndividualMeters > totalArea;
+
+    // --- SMART UX: Auto-Fill project details ---
+    const activeProject = useMemo(() => projects.find(p => p.id === projectId), [projects, projectId]);
+    
+    useEffect(() => {
+        if (activeProject) {
+            setTaskType(activeProject.work_type || '');
+            setLocation(activeProject.site_location || '');
+        }
+    }, [activeProject]);
+
+    // --- SMART UX: Clone Yesterday ---
+    const handleCloneYesterday = async () => {
+        if (!projectId) return;
+        setCloneLoading(true);
+        try {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const dateStr = yesterday.toISOString().split('T')[0];
+
+            const { data, error } = await workService.getProjectEntriesByDate(projectId, dateStr);
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                const workerIds = [...new Set(data.map(e => e.labourer_id))];
+                setSelectedLabours(workerIds);
+                toast.success(`Cloned ${workerIds.length} workers from yesterday!`);
+            } else {
+                toast.info("No work entries found for yesterday at this site.");
+            }
+        } catch (err) {
+            toast.error("Failed to clone list: " + err.message);
+        } finally {
+            setCloneLoading(false);
+        }
+    };
 
     const handleRateChange = (labourId, rate) => {
         setTempRates(prev => ({
@@ -183,6 +250,7 @@ const GroupWorkEntry = () => {
                 group_id: groupId,
                 labourer_id: item.labourId,
                 supervisor_id: user?.id,
+                project_id: projectId || null,
                 date: date,
                 task_type: taskType,
                 meters: item.meters,
@@ -208,8 +276,23 @@ const GroupWorkEntry = () => {
             // 2. Save work entries
             await workService.createBulkWorkEntries(bulkEntries);
 
+            // Prepare workers list for WhatsApp confirmation
+            const workersForWhatsApp = bulkEntries.map(entry => {
+                const labour = labourers.find(l => l.id === entry.labourer_id);
+                return {
+                    id: entry.labourer_id,
+                    name: labour?.name || 'Labourer',
+                    phone: labour?.phone || '',
+                    date: entry.date,
+                    location: entry.location || 'Site'
+                };
+            });
+
+            setSavedWorkers(workersForWhatsApp);
+            setIsSuccessModalOpen(true);
+            
             toast.success(`Successfully saved ${bulkEntries.length} work entries!`);
-            navigate('/work-entries');
+            // navigate('/work-entries'); // Removed immediate navigation
         } catch (error) {
             if (import.meta.env.DEV) console.error("Failed to save group work:", error);
             toast.error("Failed to save work entries: " + error.message);
@@ -266,6 +349,42 @@ const GroupWorkEntry = () => {
                                             onChange={(e) => setDate(e.target.value)}
                                             className="h-12 text-lg"
                                         />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Project (Site) *</Label>
+                                        <Select value={projectId} onValueChange={setProjectId}>
+                                            <SelectTrigger className="h-12 text-lg">
+                                                <SelectValue placeholder="Select Project Site" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {projects.map(p => (
+                                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        
+                                        {/* Suggestion Bar */}
+                                        {projectId && (
+                                            <motion.div 
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                className="mt-3 p-3 bg-primary/5 rounded-2xl border border-primary/20 flex items-center justify-between"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Smart Suggestion</span>
+                                                </div>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 text-xs font-bold text-primary hover:bg-primary/10"
+                                                    onClick={handleCloneYesterday}
+                                                    disabled={cloneLoading}
+                                                >
+                                                    {cloneLoading ? 'Analyzing...' : 'Clone Yesterday\'s List'}
+                                                </Button>
+                                            </motion.div>
+                                        )}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{t('location')} (Nagpur Areas) *</Label>
@@ -354,7 +473,7 @@ const GroupWorkEntry = () => {
                             <Button
                                 className="h-14 px-8 text-lg font-bold gradient-primary shadow-glow"
                                 onClick={handleCreateGroup}
-                                disabled={!date || !location || !taskType || totalArea <= 0 || selectedLabours.length === 0}
+                                disabled={!date || !projectId || !location || !taskType || totalArea <= 0 || selectedLabours.length === 0}
                             >
                                 <Plus className="h-5 w-5 mr-2" />
                                 Create Group & Continue
@@ -575,6 +694,62 @@ const GroupWorkEntry = () => {
                     </>
                 )}
             </div>
+            <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <div className="text-center py-4">
+                        <div className="mx-auto w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mb-3">
+                            <CheckCircle className="h-8 w-8 text-success" />
+                        </div>
+                        <DialogHeader>
+                            <DialogTitle className="text-xl text-center">Group Entries Saved! ✅</DialogTitle>
+                            <DialogDescription className="text-center">
+                                Successfully recorded work for {savedWorkers.length} labourers.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <ScrollArea className="max-h-[300px] pr-4">
+                        <div className="space-y-3">
+                            {savedWorkers.map((worker, idx) => (
+                                <div key={`${worker.id}-${idx}`} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border">
+                                    <div className="min-w-0">
+                                        <p className="font-semibold text-sm truncate">{worker.name}</p>
+                                        <p className="text-[10px] text-muted-foreground">{worker.phone || 'No phone'}</p>
+                                    </div>
+                                    {worker.phone && (
+                                        <Button
+                                            size="sm"
+                                            className="bg-[#25D366] hover:bg-[#20bd5c] text-white h-8 px-3 rounded-lg text-xs font-bold shrink-0"
+                                            onClick={() => window.open(generateWhatsAppLink(
+                                                worker.phone,
+                                                whatsappTemplates.bookingConfirmation(worker.name, worker.date, worker.location)
+                                            ), '_blank')}
+                                        >
+                                            <WhatsAppIcon className="h-3.5 w-3.5 mr-1.5" />
+                                            Notify
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+
+                    <div className="pt-4 flex flex-col gap-2">
+                        <Button
+                            className="w-full gradient-primary h-11 rounded-xl font-bold"
+                            onClick={() => {
+                                setIsSuccessModalOpen(false);
+                                navigate('/work-entries');
+                            }}
+                        >
+                            Back to Work Entries
+                        </Button>
+                        <p className="text-[10px] text-center text-muted-foreground">
+                            Click 'Notify' to send individual WhatsApp confirmations.
+                        </p>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 };

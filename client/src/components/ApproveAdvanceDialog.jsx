@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Banknote, Smartphone, Building2 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Dialog to approve an advance request and record the payment.

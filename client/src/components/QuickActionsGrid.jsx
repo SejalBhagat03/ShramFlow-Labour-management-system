@@ -14,40 +14,20 @@ export const QuickActionsGrid = ({ actions, className }) => {
     return (
         <div className={cn('grid grid-cols-2 gap-3', className)}>
             {actions.map((action, index) => (
-                <Button
+                <button
                     key={index}
-                    variant={action.variant === 'primary' ? 'default' : 'outline'}
                     className={cn(
-                        'relative group h-auto flex-col gap-3 py-5 px-4 rounded-xl',
-                        'transition-all duration-300 overflow-hidden',
-                        action.variant === 'primary'
-                            ? 'gradient-primary shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5 border-0'
-                            : 'bg-card hover:bg-accent/50 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md'
+                        'flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-border bg-white transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/10 group',
                     )}
                     onClick={action.onClick}
-                    style={{ animationDelay: `${index * 75}ms` }}
                 >
-                    {/* Hover shine effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                    <div className={cn(
-                        'relative p-2.5 rounded-lg transition-transform duration-300 group-hover:scale-110',
-                        action.variant === 'primary'
-                            ? 'bg-primary-foreground/20'
-                            : 'bg-primary/10'
-                    )}>
-                        <action.icon className={cn(
-                            'h-5 w-5',
-                            action.variant === 'primary' ? 'text-primary-foreground' : 'text-primary'
-                        )} strokeWidth={2.5} />
+                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 transition-transform group-hover:scale-110">
+                        <action.icon className="h-5 w-5" strokeWidth={2.5} />
                     </div>
-                    <span className={cn(
-                        'relative text-xs font-semibold tracking-wide',
-                        action.variant === 'primary' ? 'text-primary-foreground' : 'text-foreground'
-                    )}>
+                    <span className="text-xs font-bold text-foreground tracking-tight">
                         {action.label}
                     </span>
-                </Button>
+                </button>
             ))}
         </div>
     );

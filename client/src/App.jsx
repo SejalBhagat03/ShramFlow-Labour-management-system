@@ -13,19 +13,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
+const RecycleBin = React.lazy(() => import("./pages/RecycleBin"));
 // Keeping other specialized pages lazy
 const Labourers = React.lazy(() => import("./pages/Labourers"));
 const LabourLedger = React.lazy(() => import("./pages/LabourLedger"));
 const WorkEntries = React.lazy(() => import("./pages/WorkEntries"));
 const Payments = React.lazy(() => import("./pages/Payments"));
 const Reports = React.lazy(() => import("./pages/Reports"));
-const Flagged = React.lazy(() => import("./pages/Flagged"));
 const Settings = React.lazy(() => import("./pages/Settings"));
 const AuditLog = React.lazy(() => import("./pages/AuditLog"));
 const LabourPortal = React.lazy(() => import("./pages/LabourPortal"));
@@ -35,13 +36,31 @@ const GroupWorkEntry = React.lazy(() => import("./pages/GroupWorkEntry"));
 const LabourProfile = React.lazy(() => import("./pages/LabourProfile"));
 const SupervisorDashboardV2 = React.lazy(() => import("./pages/SupervisorDashboardV2"));
 const LabourDashboardV2 = React.lazy(() => import("./pages/LabourDashboardV2"));
+const Projects = React.lazy(() => import("./pages/Projects"));
+const ProjectDetails = React.lazy(() => import("./pages/ProjectDetails"));
+const CommandCenter = React.lazy(() => import("./pages/CommandCenter"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 import { Chatbot } from "./components/Chatbot";
+import { OfflineIndicator } from "./components/OfflineIndicator";
+import Commander from "./components/Commander";
 
-import { Loader2, Shield } from "lucide-react";
+import { Loader2, Shield, WifiOff } from "lucide-react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 1000 * 60 * 5, // 5 minutes
+            gcTime: 1000 * 60 * 30, // 30 minutes
+            retry: (failureCount, error) => {
+                if (error?.status === 404) return false;
+                if (failureCount < 2) return true;
+                return false;
+            },
+            refetchOnWindowFocus: false,
+        },
+    },
+});
 
 /* ---------------------------------- */
 /* Loading Screen */
@@ -66,8 +85,16 @@ const LoadingScreen = () => {
             </p>
             {showReload && (
                 <div className="animate-fade-in mt-8 space-y-4">
-                    <p className="text-amber-600 text-[10px] uppercase font-bold tracking-widest">Network is slow</p>
-                    <div className="flex gap-2">
+                    {!navigator.onLine && (
+                        <div className="flex items-center justify-center gap-2 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse-soft mb-2 mx-auto w-fit">
+                             <WifiOff className="h-3 w-3" />
+                             <span className="text-[10px] font-bold uppercase tracking-wider">Offline Mode</span>
+                        </div>
+                    )}
+                    <p className="text-amber-600 text-[10px] uppercase font-bold tracking-widest">
+                        {navigator.onLine ? "Network is slow" : "No Internet Connection"}
+                    </p>
+                    <div className="flex gap-2 justify-center">
                         <Button
                             onClick={() => window.location.reload()}
                             variant="outline"
@@ -140,7 +167,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
             return <LoadingScreen />;
         }
         
-        const redirectPath = user.role === "labour" ? "/labour-portal" : "/dashboard";
+        
+        const redirectPath = user.role === "labour" ? "/labour-portal" : "/command-center";
         return <Navigate to={redirectPath} replace />;
     }
 
@@ -166,7 +194,7 @@ const AppRoutes = () => {
                         user?.isFallback ? (
                             <LoadingScreen />
                         ) : (
-                            <Navigate to={user?.role === 'labour' ? '/labour-portal' : '/dashboard'} replace />
+                        <Navigate to={user?.role === 'labour' ? '/labour-portal' : '/command-center'} replace />
                         )
                     ) : (
                         <Login />
@@ -177,12 +205,35 @@ const AppRoutes = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
 
-            {/* Dashboard Routes (Admin, Supervisor, Accountant) */}
+            <Route
+                path="/command-center"
+                element={
+                    <ProtectedRoute allowedRoles={["supervisor"]}>
+                        <CommandCenter />
+                    </ProtectedRoute>
+                }
+            />
+
             <Route
                 path="/dashboard"
                 element={
+                    <Navigate to="/command-center" replace />
+                }
+            />
+
+            <Route
+                path="/projects"
+                element={
                     <ProtectedRoute allowedRoles={["supervisor"]}>
-                        <Dashboard />
+                        <Projects />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/projects/:id"
+                element={
+                    <ProtectedRoute allowedRoles={["supervisor"]}>
+                        <ProjectDetails />
                     </ProtectedRoute>
                 }
             />
@@ -241,6 +292,15 @@ const AppRoutes = () => {
             />
 
             <Route
+                path="/recycle-bin"
+                element={
+                    <ProtectedRoute allowedRoles={["supervisor"]}>
+                        <RecycleBin />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
                 path="/labour/:id/ledger"
                 element={
                     <ProtectedRoute allowedRoles={['supervisor', 'labour']}>
@@ -253,15 +313,6 @@ const AppRoutes = () => {
                 element={
                     <ProtectedRoute allowedRoles={["supervisor"]}>
                         <Reports />
-                    </ProtectedRoute>
-                }
-            />
-
-            <Route
-                path="/flagged"
-                element={
-                    <ProtectedRoute allowedRoles={["supervisor"]}>
-                        <Flagged />
                     </ProtectedRoute>
                 }
             />
@@ -342,6 +393,8 @@ const App = () => (
                 <AuthProvider>
                     <AppRoutes />
                     <Chatbot />
+                    <Commander />
+                    <OfflineIndicator />
                     <DevPortIndicator />
                 </AuthProvider>
             </BrowserRouter>

@@ -7,5 +7,6 @@ router.get('/', protect, authorize(['supervisor']), labourController.getAllLabou
 router.post('/', protect, authorize(['supervisor']), labourController.createLabourer);
 router.get('/:id/history', protect, authorize(['supervisor']), labourController.getWorkHistory);
 router.get('/:id/ledger', protect, authorize(['supervisor', 'labour']), labourController.getLedger);
+router.delete('/:id', protect, authorize(['supervisor']), labourController.deleteLabourer);
 
 module.exports = router;

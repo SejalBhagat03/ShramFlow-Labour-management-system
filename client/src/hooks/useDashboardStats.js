@@ -1,15 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 
 export const useDashboardStats = () => {
     const { user } = useAuth();
 
     const { data: stats, isLoading, error } = useQuery({
-        queryKey: ['dashboard_stats', user?.id],
+        queryKey: ['dashboard_stats', user?.id, user?.organization_id],
         queryFn: async () => {
-            if (!user) {
+            const orgId = user?.organization_id;
+            const isValidOrg = orgId && orgId !== 'null' && orgId !== 'undefined';
+
+            if (!user || !isValidOrg) {
+                if (import.meta.env.DEV && !isValidOrg && orgId) {
+                    console.warn('[useDashboardStats] Invalid organization_id:', orgId);
+                }
                 return {
                     totalLabourers: 0,
                     activeLabourers: 0,
@@ -36,13 +42,20 @@ export const useDashboardStats = () => {
 
             // Fetch primary data with individual error handling to prevent total failure
             const fetchLabourers = async () => {
-                const { data, error } = await supabase.from('labourers').select('id, name, status, trust_score');
+                const { data, error } = await supabase
+                    .from('labourers')
+                    .select('id, name, status, trust_score')
+                    .eq('organization_id', user.organization_id);
                 if (error) return [];
                 return data || [];
             };
 
             const fetchPayments = async () => {
-                const { data, error } = await supabase.from('payments').select('amount, status').eq('status', 'unpaid');
+                const { data, error } = await supabase
+                    .from('payments')
+                    .select('amount, status')
+                    .eq('status', 'unpaid')
+                    .eq('organization_id', user.organization_id);
                 if (error) return [];
                 return data || [];
             };
@@ -51,7 +64,10 @@ export const useDashboardStats = () => {
                 const { data, error } = await supabase.from('work_entries').select(`
                     id, date, meters, hours, amount, task_type, status,
                     labourer:labourers(name)
-                `).order('date', { ascending: false }).limit(500);
+                `)
+                .eq('organization_id', user.organization_id)
+                .order('date', { ascending: false })
+                .limit(500);
 
                 if (error) return [];
                 return data || [];
@@ -66,7 +82,10 @@ export const useDashboardStats = () => {
             // Try to fetch ledger
             let ledger = [];
             try {
-                const { data, error } = await supabase.from('labour_ledger').select('amount, transaction_type');
+                const { data, error } = await supabase
+                    .from('labour_ledger')
+                    .select('amount, transaction_type')
+                    .eq('organization_id', user.organization_id);
                 if (!error) ledger = data || [];
             } catch (e) {
                 // Silently fail for ledger if not implemented
@@ -156,7 +175,7 @@ export const useDashboardStats = () => {
                 taskDistribution
             };
         },
-        enabled: !!user,
+        enabled: !!user && !!user.organization_id,
         staleTime: 300000, // 5 minutes cache for production
     });
 

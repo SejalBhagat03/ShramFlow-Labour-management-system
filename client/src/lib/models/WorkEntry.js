@@ -23,9 +23,11 @@ export class WorkEntry {
     constructor(data) {
         this.id = data.id;
         this.labourer_id = data.labourer_id;
+        this.project_id = data.project_id;
         this.date = data.date;
-        this.meters = Number(data.meters) || 0;
-        this.amount = Number(data.amount) || 0;
+        this.meters = Number(data.meters || 0);
+        this.work_done = Number(data.work_done || data.meters || 0);
+        this.amount = Number(data.amount || 0);
         this.status = data.status || 'submitted';
         this.description = data.description;
         this.task_type = data.task_type || 'General';
@@ -34,9 +36,29 @@ export class WorkEntry {
         this.approved_at = data.approved_at;
         this.latitude = data.latitude;
         this.longitude = data.longitude;
-        this.wage_amount = Number(data.wage_amount) || 0;
+        this.wage_amount = Number(data.wage_amount || 0);
         this.photo_url = data.photo_url;
         this.before_photo_url = data.before_photo_url;
         this.after_photo_url = data.after_photo_url;
+        this.group_id = data.group_id;
+
+        // Joined Data (Preserve objects if they exist)
+        this.labourer = data.labourer || null;
+        this.project = data.project || null;
+        this.organization = data.organization || null;
+    }
+
+    /**
+     * Safely returns the labourer name or 'Unknown'
+     */
+    getLabourerName() {
+        return this.labourer?.name || 'Unknown';
+    }
+
+    /**
+     * returns project name or 'No Project'
+     */
+    getProjectName() {
+        return this.project?.name || 'No Project';
     }
 }

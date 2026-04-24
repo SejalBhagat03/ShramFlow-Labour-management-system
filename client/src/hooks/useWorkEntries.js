@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { workService } from '@/services/workService';
 import { WorkEntry as WorkEntryModel } from '@/lib/models/WorkEntry';
@@ -10,7 +10,7 @@ export const useWorkEntries = (labourerId) => {
     const queryClient = useQueryClient();
 
     const { data: workEntries = [], isLoading, error } = useQuery({
-        queryKey: ['work_entries', user?.id, labourerId],
+        queryKey: ['work_entries', user?.id, labourerId, user?.organization_id],
         queryFn: async () => {
             if (!user) return [];
             // If used in a context that requires a labourerId, we could add a guard.
@@ -19,15 +19,16 @@ export const useWorkEntries = (labourerId) => {
             // Let's assume this means when intended for a specific labourer.
             if (labourerId === 'undefined') return [];
 
-            return await workService.getWorkEntries(labourerId);
+            return await workService.getWorkEntries(labourerId, user?.organization_id);
         },
-        enabled: !!user
+        enabled: !!user && !!user.organization_id && user.organization_id !== 'null' && user.organization_id !== 'undefined'
     });
 
     const createWorkEntry = useMutation({
         mutationFn: async (formData) => {
             return await workService.createWorkEntry({
                 labourer_id: formData.labourer_id,
+                project_id: formData.project_id || null,
                 date: formData.date,
                 task_type: formData.task_type,
                 meters: formData.meters || null,
@@ -105,6 +106,30 @@ export const useWorkEntries = (labourerId) => {
         }
     });
 
+    const deleteWorkEntry = useMutation({
+        mutationFn: async (id) => {
+            return await workService.deleteWorkEntry(id);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['work_entries'] });
+            queryClient.invalidateQueries({ queryKey: ['activities'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard_stats'] });
+            queryClient.invalidateQueries({ queryKey: ['labourers'] });
+            toast({
+                title: 'Work Entry Removed',
+                description: 'Record moved to Recycle Bin.',
+                variant: 'destructive'
+            });
+        },
+        onError: (error) => {
+            toast({
+                title: 'Error',
+                description: error.message,
+                variant: 'destructive'
+            });
+        }
+    });
+
     return {
         workEntries,
         isLoading,
@@ -112,6 +137,7 @@ export const useWorkEntries = (labourerId) => {
         createWorkEntry,
         approveWorkEntry,
         approveBulkWorkEntries,
-        flagWorkEntry
+        flagWorkEntry,
+        deleteWorkEntry
     };
 };

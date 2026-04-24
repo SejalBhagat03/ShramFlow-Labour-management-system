@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/AppLayout';
 import { useLabourers } from '@/hooks/useLabourers';
 import { Button } from '@/components/ui/button';
@@ -20,19 +20,59 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, UserPlus, Phone, MapPin, Loader2, BookOpen } from 'lucide-react';
+import { 
+    Search, 
+    Filter, 
+    UserPlus, 
+    Phone, 
+    MapPin, 
+    Loader2, 
+    BookOpen, 
+    User, 
+    Activity, 
+    Percent, 
+    Languages, 
+    IndianRupee, 
+    Sparkles,
+    Eye,
+    Pencil,
+    Trash2,
+    CheckCircle2,
+    Calendar,
+    ChevronRight,
+    ExternalLink,
+    Plus,
+    FileText,
+    PieChart,
+    MessageCircle,
+    ArrowUpDown,
+    Download,
+    ClipboardCheck,
+    Wallet,
+    Users
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TrustScoreBadge } from '@/components/TrustScoreBadge';
+import { translationService } from '@/services/translationService';
+import { generateWhatsAppLink, whatsappTemplates } from '@/utils/whatsapp';
 
-/**
- * Labourers page component for managing the labour directory.
- * Allows supervisors to search, filter, add, edit, and remove labour records.
- *
- * @returns {JSX.Element} The Labourers page component.
- */
+// New Modular Components
+import { StatsCard } from '@/components/workforce/StatsCard';
+import { LabourCard } from '@/components/workforce/LabourCard';
+import { FilterBar } from '@/components/workforce/FilterBar';
+
 const Labourers = () => {
     const { t, i18n } = useTranslation();
     const lang = i18n.language;
@@ -44,17 +84,15 @@ const Labourers = () => {
         createLabourer,
         updateLabourer,
         deleteLabourer,
-        getLabourBalance,
-        getLabourStats
     } = useLabourers();
+    
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [locationFilter, setLocationFilter] = useState('all');
+    const [sortOption, setSortOption] = useState('recent');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [selectedLabour, setSelectedLabour] = useState(null);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-    // Form state (role fixed to "Labour")
     const [formData, setFormData] = useState({
         name: '',
         name_hindi: '',
@@ -66,10 +104,6 @@ const Labourers = () => {
         location: '',
         password: undefined
     });
-
-    const [balance, setBalance] = useState(null);
-    const [stats, setStats] = useState({ total_earned: 0, total_paid: 0 });
-    const [loadingBalance, setLoadingBalance] = useState(false);
 
     const filteredLabourers = useMemo(() => {
         return labourers.filter((labour) => {
@@ -83,29 +117,27 @@ const Labourers = () => {
         });
     }, [labourers, search, statusFilter, locationFilter]);
 
+    const sortedLabourers = useMemo(() => {
+        return [...filteredLabourers].sort((a, b) => {
+            if (sortOption === 'rating') return (b.trust_score || 0) - (a.trust_score || 0);
+            if (sortOption === 'rate') return b.daily_rate - a.daily_rate;
+            if (sortOption === 'recent') return new Date(b.created_at) - new Date(a.created_at);
+            return 0;
+        });
+    }, [filteredLabourers, sortOption]);
+
+    const stats = useMemo(() => {
+        const active = labourers.filter(l => l.status === 'active');
+        return {
+            total: labourers.length,
+            activeCount: active.length,
+            dailyCost: active.reduce((acc, l) => acc + (l.daily_rate || 0), 0)
+        };
+    }, [labourers]);
+
     const locations = useMemo(() => {
         return [...new Set(labourers.map((l) => l.location).filter(Boolean))];
     }, [labourers]);
-
-    const handleView = async (labour) => {
-        setSelectedLabour(labour);
-        setIsViewModalOpen(true);
-        setBalance(null);
-        setStats({ total_earned: 0, total_paid: 0 });
-        setLoadingBalance(true);
-        try {
-            const [bal, st] = await Promise.all([
-                getLabourBalance(labour.id),
-                getLabourStats(labour.id)
-            ]);
-            setBalance(bal);
-            setStats(st);
-        } catch (error) {
-            console.error("Failed to fetch balance", error);
-        } finally {
-            setLoadingBalance(false);
-        }
-    };
 
     const handleEdit = (labour) => {
         setSelectedLabour(labour);
@@ -113,7 +145,7 @@ const Labourers = () => {
             name: labour.name,
             name_hindi: labour.name_hindi || '',
             phone: labour.phone || '',
-            role: 'Labour', // role fixed
+            role: 'Labour',
             daily_rate: labour.daily_rate,
             rate_per_meter: labour.rate_per_meter || 0,
             status: labour.status,
@@ -135,13 +167,10 @@ const Labourers = () => {
             } else {
                 await createLabourer.mutateAsync(formData);
             }
-
-            // success – close modal and reset
             setIsAddModalOpen(false);
             setSelectedLabour(null);
             resetForm();
         } catch (err) {
-            // mutation onError toast already fired; just log and keep form open
             console.error('Save failed:', err);
         }
     };
@@ -168,9 +197,6 @@ const Labourers = () => {
             rate_per_meter: 0,
             status: 'active',
             location: '',
-            location: '',
-            // Email is now auto-generated from phone if password is set
-            // Password undefined means "Login Disabled"
             password: undefined
         });
     };
@@ -183,453 +209,153 @@ const Labourers = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
-                {/* Immersive Page Header */}
-                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
-                    <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-6">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Workforce Management</span>
-                            </div>
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t('labourDirectory')}</h1>
-                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
-                                {filteredLabourers.length} {t('labourers')} currently active
-                            </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                            <Button className="py-2.5 px-4 rounded-xl gradient-primary shadow-glow font-bold w-full sm:w-auto text-sm md:text-base h-auto" onClick={openAddModal}>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                {t('addNewLabour')}
-                            </Button>
-                        </div>
+            <div className="space-y-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Workforce</h1>
+                        <p className="text-sm text-muted-foreground mt-1">Manage and monitor your registered labourers.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 font-bold">
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                        </Button>
+                        <Button onClick={openAddModal} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-6 rounded-xl">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Labourer
+                        </Button>
                     </div>
                 </div>
 
-                {/* Main Content Sections */}
-                <div className="space-y-4 md:space-y-6">
-                    {/* Filters Section */}
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-6 bg-card p-4 md:p-6 rounded-2xl border shadow-sm">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder={`${t('search')} by name...`}
-                                className="pl-10 py-2 px-3 h-10 md:h-11 bg-muted/40 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl text-sm"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-full sm:w-40 h-10 md:h-11 bg-muted/40 border-none rounded-xl px-3 md:px-4 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <SelectValue placeholder={t('status')} />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                    <SelectItem value="all">All Status</SelectItem>
-                                    <SelectItem value="active">{t('active')}</SelectItem>
-                                    <SelectItem value="inactive">{t('inactive')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select value={locationFilter} onValueChange={setLocationFilter}>
-                                <SelectTrigger className="w-full sm:w-48 h-10 md:h-11 bg-muted/40 border-none rounded-xl px-3 md:px-4 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <SelectValue placeholder={t('location')} />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl">
-                                    <SelectItem value="all">All Locations</SelectItem>
-                                    {locations.map((loc) => (
-                                        <SelectItem key={loc} value={loc}>
-                                            {loc}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatsCard icon={Users} label="Total Registered" value={stats.total} />
+                    <StatsCard icon={Activity} label="Active Count" value={stats.activeCount} />
+                    <StatsCard icon={Wallet} label="Total Daily Cost" value={`₹${stats.dailyCost}`} />
+                </div>
 
-                    {/* Labour Grid */}
+                {/* Filters */}
+                <FilterBar 
+                    search={search} setSearch={setSearch}
+                    statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+                    locationFilter={locationFilter} setLocationFilter={setLocationFilter}
+                    sortOption={sortOption} setSortOption={setSortOption}
+                    locations={locations}
+                />
+
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {isLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <Skeleton key={i} className="h-48 rounded-xl" />
-                            ))}
+                        [1, 2, 3].map(i => <div key={i} className="h-64 bg-white border border-border animate-pulse rounded-2xl" />)
+                    ) : sortedLabourers.length === 0 ? (
+                        <div className="col-span-full py-20 text-center bg-white border-2 border-dashed border-border rounded-2xl">
+                            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                            <h3 className="text-lg font-bold text-foreground">No workers found</h3>
+                            <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                            {filteredLabourers.map((labour) => (
-                                <div
-                                    key={labour.id}
-                                    className="bg-card rounded-xl border p-4 shadow-card transition-all duration-200 hover:shadow-lg"
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-primary font-bold text-lg">
-                                                {labour.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                                            </span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <h3 className="font-semibold text-foreground truncate">
-                                                    {lang === 'hi' && labour.name_hindi ? labour.name_hindi : labour.name}
-                                                </h3>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={cn(
-                                                        labour.status === 'active'
-                                                            ? 'bg-success/10 text-success border-success/20'
-                                                            : 'bg-muted text-muted-foreground'
-                                                    )}
-                                                >
-                                                    {labour.status}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-sm text-primary font-medium">Labour</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <p className="text-sm text-muted-foreground">₹{labour.daily_rate}/day</p>
-                                                <TrustScoreBadge labourerId={labour.id} size="sm" />
-                                            </div>
-
-                                            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                                                {labour.phone && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Phone className="h-3 w-3" />
-                                                        {labour.phone}
-                                                    </div>
-                                                )}
-                                                {labour.location && (
-                                                    <div className="flex items-center gap-1">
-                                                        <MapPin className="h-3 w-3" />
-                                                        {labour.location}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex gap-2 mt-3">
-                                                <Button size="sm" variant="outline" onClick={() => handleView(labour)}>
-                                                    View
-                                                </Button>
-                                                <Button size="sm" variant="outline" onClick={() => handleEdit(labour)}>
-                                                    Edit
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="text-destructive"
-                                                    onClick={() => handleDelete(labour)}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        sortedLabourers.map((labour) => (
+                            <LabourCard 
+                                key={labour.id}
+                                labour={labour} lang={lang} 
+                                onEdit={handleEdit} onDelete={handleDelete}
+                            />
+                        ))
                     )}
+                </div>
 
-                    {!isLoading && filteredLabourers.length === 0 && (
-                        <div className="text-center py-12">
-                            <p className="text-muted-foreground">{t('noData')}</p>
-                            <Button className="mt-4" onClick={openAddModal}>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                {t('addNewLabour')}
-                            </Button>
+                {/* Modal */}
+                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                    <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+                        <div className="p-6 border-b border-border bg-white">
+                            <DialogTitle className="text-xl font-bold">{selectedLabour ? 'Edit Profile' : 'New Labourer'}</DialogTitle>
+                            <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">
+                                Register a new worker or update existing staff credentials.
+                            </DialogDescription>
                         </div>
-                    )}
+                        
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Full Name</Label>
+                                    <Input
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        onBlur={handleAutoTranslateName}
+                                        placeholder="Ramesh Kumar"
+                                        className="h-11 rounded-xl text-sm border-border"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Name (Hindi)</Label>
+                                    <Input
+                                        value={formData.name_hindi}
+                                        onChange={(e) => setFormData({ ...formData, name_hindi: e.target.value })}
+                                        placeholder="रमेश कुमार"
+                                        className="h-11 rounded-xl text-sm border-border"
+                                    />
+                                </div>
+                            </div>
 
-                    {/* Add/Edit Modal */}
-                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
-                                <DialogTitle>
-                                    {selectedLabour ? t('editLabour') : t('addNewLabour')}
-                                </DialogTitle>
-                                <DialogDescription className="text-xs">
-                                    Fill in the details below to {selectedLabour ? 'update' : 'add'} a labour.
-                                </DialogDescription>
-                            </DialogHeader>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Phone</Label>
+                                    <Input
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        placeholder="10-digit number"
+                                        className="h-11 rounded-xl text-sm border-border"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Site Location</Label>
+                                    <Input
+                                        value={formData.location}
+                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                        placeholder="Sector 62..."
+                                        className="h-11 rounded-xl text-sm border-border"
+                                    />
+                                </div>
+                            </div>
 
-                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="labour_name_input" className="text-xs font-semibold">Labour Name *</Label>
-                                        <Input
-                                            id="labour_name_input"
-                                            name="labour_name_input"
-                                            autoComplete="off"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            onBlur={handleAutoTranslateName}
-                                            placeholder="Enter Name (e.g. Ramesh)"
-                                            className="h-9 text-sm"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="nameHindi" className="text-xs font-semibold">{t('nameInHindi')}</Label>
-                                        <Input
-                                            id="nameHindi"
-                                            value={formData.name_hindi}
-                                            onChange={(e) => setFormData({ ...formData, name_hindi: e.target.value })}
-                                            placeholder="रमेश कुमार"
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Daily Wage (₹)</Label>
+                                    <Input
+                                        type="number"
+                                        value={formData.daily_rate}
+                                        onChange={(e) => setFormData({ ...formData, daily_rate: Number(e.target.value) })}
+                                        className="h-11 rounded-xl text-sm font-bold border-border"
+                                    />
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="phone" className="text-xs font-semibold">{t('phone')}</Label>
-                                        <Input
-                                            id="phone"
-                                            value={formData.phone}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder="+91 98765 43210"
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                    <input type="hidden" value={formData.role} />
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="dailyRate" className="text-xs font-semibold">{t('dailyRate')} (₹) *</Label>
-                                        <Input
-                                            id="dailyRate"
-                                            type="number"
-                                            value={formData.daily_rate}
-                                            onChange={(e) => setFormData({ ...formData, daily_rate: Number(e.target.value) })}
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="ratePerMeter" className="text-xs font-semibold">Rate Per Meter (₹)</Label>
-                                        <Input
-                                            id="ratePerMeter"
-                                            type="number"
-                                            placeholder="0"
-                                            value={formData.rate_per_meter || ''}
-                                            onChange={(e) => setFormData({ ...formData, rate_per_meter: Number(e.target.value) })}
-                                            className="h-9 text-sm"
-                                        />
-                                        <p className="text-[10px] text-muted-foreground font-medium">Auto-calculates wage for metered work</p>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="location" className="text-xs font-semibold">{t('location')}</Label>
-                                        <Input
-                                            id="location"
-                                            value={formData.location}
-                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                            placeholder="Site A - Sector 15"
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="status" className="text-xs font-semibold">{t('status')}</Label>
-                                    <Select
-                                        value={formData.status}
-                                        onValueChange={(value) => setFormData({ ...formData, status: value })}
-                                    >
-                                        <SelectTrigger className="h-9 text-sm">
+                                <div className="grid gap-2">
+                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</Label>
+                                    <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                                        <SelectTrigger className="h-11 rounded-xl text-sm border-border">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="active">{t('active')}</SelectItem>
-                                            <SelectItem value="inactive">{t('inactive')}</SelectItem>
+                                        <SelectContent className="rounded-xl">
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="inactive">Inactive</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-
-                                {!selectedLabour && (
-                                    <>
-                                        <div className="border-t pt-4">
-                                            <div className="flex items-center space-x-2 mb-4">
-                                                <input
-                                                    type="checkbox"
-                                                    id="enableLogin"
-                                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                    checked={!!formData.password}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setFormData({ ...formData, password: '' });
-                                                        } else {
-                                                            setFormData({ ...formData, password: '', email: '' });
-                                                        }
-                                                    }}
-                                                />
-                                                <Label htmlFor="enableLogin" className="peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs font-semibold">
-                                                    Enable Login Access for this Labourer
-                                                </Label>
-                                            </div>
-
-                                            {formData.password !== undefined && (
-                                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
-                                                    <p className="text-[10px] text-muted-foreground font-medium">
-                                                        Login will be enabled using their <strong>Phone Number</strong> as the username.
-                                                    </p>
-                                                    <div className="space-y-1.5">
-                                                        <Label htmlFor="password" title="Set Login Password" className="text-xs font-semibold">Set Login Password</Label>
-                                                        <Input
-                                                            id="password"
-                                                            type="password"
-                                                            value={formData.password}
-                                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                            placeholder="Create a password (min 6 chars)"
-                                                            minLength={6}
-                                                            className="h-9 text-sm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
                             </div>
+                        </div>
 
-                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
-                                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)}>
-                                    {t('cancel')}
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    className="gradient-primary"
-                                    onClick={handleSave}
-                                    disabled={!formData.name || createLabourer.isPending || updateLabourer.isPending}
-                                >
-                                    {(createLabourer.isPending || updateLabourer.isPending) ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        t('save')
-                                    )}
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-
-                    {/* View Modal */}
-                    <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
-                                <DialogTitle>
-                                    {lang === 'hi' && selectedLabour?.name_hindi ? selectedLabour.name_hindi : selectedLabour?.name}
-                                </DialogTitle>
-                                <DialogDescription className="text-xs">Labour Profile</DialogDescription>
-                            </DialogHeader>
-
-                            {selectedLabour && (
-                                <>
-                                    <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
-                                        {/* Balance Section */}
-                                        <div className="bg-muted/30 p-4 rounded-xl border border-white/40 shadow-sm space-y-4">
-                                            <div className="flex items-center justify-between border-b border-white/40 pb-3">
-                                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Net Balance</p>
-                                                {loadingBalance ? (
-                                                    <div className="h-6 w-24 bg-muted animate-pulse rounded" />
-                                                ) : (
-                                                    <div className="text-right">
-                                                        <span className={cn(
-                                                            "text-xl font-bold block leading-none mb-1",
-                                                            balance >= 0 ? "text-green-600" : "text-red-600"
-                                                        )}>
-                                                            {balance !== null ? (balance >= 0 ? `₹${balance}` : `-₹${Math.abs(balance)}`) : '₹0'}
-                                                        </span>
-                                                        <Badge variant={balance >= 0 ? "outline" : "destructive"} className="text-[10px] h-5 px-2 bg-white/50">
-                                                            {balance >= 0 ? "Pending Payout" : "Advance Taken"}
-                                                        </Badge>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Stats Grid */}
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="bg-white/40 p-2.5 rounded-lg border border-white/60">
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1">Total Earned</p>
-                                                    <p className="font-bold text-green-700 text-sm">
-                                                        ₹{(stats?.total_earned || 0).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                                <div className="bg-white/40 p-2.5 rounded-lg border border-white/60">
-                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1">Total Paid</p>
-                                                    <p className="font-bold text-red-700 text-sm">
-                                                        ₹{(stats?.total_paid || 0).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                            <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-0.5">{t('phone')}</p>
-                                                <p className="font-semibold text-sm">{selectedLabour.phone || 'N/A'}</p>
-                                            </div>
-                                            <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-0.5">{t('dailyRate')}</p>
-                                                <p className="font-semibold text-sm text-primary">₹{selectedLabour.daily_rate}</p>
-                                            </div>
-                                            <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-0.5">{t('location')}</p>
-                                                <p className="font-semibold text-sm truncate">{selectedLabour.location || 'N/A'}</p>
-                                            </div>
-                                            <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-0.5">{t('joinDate')}</p>
-                                                <p className="font-semibold text-sm">{selectedLabour.join_date || 'N/A'}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Trust Score Section */}
-                                        <div className="border-t border-border/40 pt-4">
-                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-3">{t('trustScore')}</p>
-                                            <div className="bg-muted/20 p-4 rounded-xl border border-border/40">
-                                                <TrustScoreBadge labourerId={selectedLabour.id} showScore showProgress size="md" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex gap-2 z-10">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 rounded-xl h-10"
-                                            onClick={() => {
-                                                setIsViewModalOpen(false);
-                                                handleEdit(selectedLabour);
-                                            }}
-                                        >
-                                            {t('edit')}
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 rounded-xl h-10"
-                                            onClick={() => navigate(`/labour/${selectedLabour.id}/ledger`)}
-                                        >
-                                            <BookOpen className="h-4 w-4 mr-2" />
-                                            Ledger
-                                        </Button>
-                                        {selectedLabour.phone && (
-                                            <Button
-                                                size="sm"
-                                                className="flex-1 gradient-primary rounded-xl h-10 font-bold"
-                                                onClick={() => window.open(`tel:${selectedLabour.phone}`)}
-                                            >
-                                                Call Now
-                                            </Button>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                        <div className="p-6 bg-muted/20 border-t border-border flex justify-end gap-3">
+                            <Button variant="ghost" className="h-11 px-6 rounded-xl font-bold" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                            <Button 
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white h-11 px-8 rounded-xl font-bold"
+                                onClick={handleSave}
+                                disabled={createLabourer.isPending || updateLabourer.isPending}
+                            >
+                                {selectedLabour ? 'Save Changes' : 'Confirm Registration'}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

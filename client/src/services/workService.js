@@ -12,7 +12,7 @@ export const workService = {
      * @param {string} labourerId
      * @returns {Promise<WorkEntry[]>}
      */
-    async getWorkEntries(labourerId) {
+    async getWorkEntries(labourerId, organizationId) {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
 
@@ -22,8 +22,12 @@ export const workService = {
         }
 
         let url = `${API_BASE}/api/work`;
-        if (labourerId && labourerId !== 'undefined') {
-            url += `?labourer_id=${labourerId}`;
+        const params = [];
+        if (labourerId && labourerId !== 'undefined') params.push(`labourer_id=${labourerId}`);
+        if (organizationId) params.push(`organization_id=${organizationId}`);
+        
+        if (params.length > 0) {
+            url += `?${params.join('&')}`;
         }
 
         const response = await fetch(url, {
@@ -54,6 +58,13 @@ export const workService = {
      * @returns {Promise<WorkEntry>}
      */
     async createWorkEntry(entryData) {
+        if (!navigator.onLine) {
+            // Lazy import to prevent circular dependency
+            const { offlineSyncService } = await import('./offlineSyncService');
+            await offlineSyncService.enqueueWorkEntry(entryData);
+            return new WorkEntry({ ...entryData, id: 'offline-' + Date.now(), status: 'pending' });
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
 
@@ -84,13 +95,90 @@ export const workService = {
      * @returns {Promise<WorkEntry[]>}
      */
     async createBulkWorkEntries(entriesData) {
-        const { data, error } = await supabase
-            .from('work_entries')
-            .insert(entriesData)
-            .select();
+        if (!navigator.onLine) {
+            const queue = JSON.parse(localStorage.getItem('shramflow_offline_queue') || '[]');
+            queue.push({ type: 'bulk', data: entriesData, timestamp: Date.now() });
+            localStorage.setItem('shramflow_offline_queue', JSON.stringify(queue));
+            
+            return entriesData.map(e => new WorkEntry({ ...e, id: 'offline-' + Date.now(), status: 'pending' }));
+        }
 
-        if (error) throw error;
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+            throw new Error("Authentication token required for bulk insert");
+        }
+
+        const response = await fetch(`${API_BASE}/api/work/bulk`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ entries: entriesData })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            if (import.meta.env.DEV) console.error('[WorkService] Bulk insert failed:', error);
+            throw new Error(error.error || 'Failed to save bulk entries');
+        }
+
+        const data = await response.json();
         return data.map(entry => new WorkEntry(entry));
+    },
+
+    /**
+     * Undo the most recent work entry (within 10 min window)
+     */
+    async undoLastEntry() {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE}/api/work/undo`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Undo failed');
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Sync any pending offline entries from localStorage
+     */
+    async syncOfflineEntries() {
+        if (!navigator.onLine) return;
+
+        const queue = JSON.parse(localStorage.getItem('shramflow_offline_queue') || '[]');
+        if (queue.length === 0) return;
+
+        console.log(`[OfflineSync] Attempting to sync ${queue.length} items...`);
+        const remainingQueue = [];
+
+        for (const item of queue) {
+            try {
+                if (item.type === 'bulk') {
+                    await this.createBulkWorkEntries(item.data);
+                } else {
+                    await this.createWorkEntry(item.data);
+                }
+            } catch (err) {
+                console.error('[OfflineSync] Item sync failed:', err);
+                remainingQueue.push(item);
+            }
+        }
+
+        localStorage.setItem('shramflow_offline_queue', JSON.stringify(remainingQueue));
+        return remainingQueue.length === 0;
     },
 
     /**
@@ -101,7 +189,7 @@ export const workService = {
     async getPendingAcknowledgments(labourerId) {
         const { data, error } = await supabase
             .from('work_acknowledgments')
-            .select('*, daily_work_register(*)')
+            .select('*, work_entries(*)')
             .eq('labourer_id', labourerId)
             .eq('status', 'pending');
 
@@ -139,6 +227,22 @@ export const workService = {
     },
 
     /**
+     * Fetch work entries for a project on a specific date
+     * @param {string} projectId 
+     * @param {string} date (YYYY-MM-DD)
+     */
+    async getProjectEntriesByDate(projectId, date) {
+        const { data, error } = await supabase
+            .from('work_entries')
+            .select('*')
+            .eq('project_id', projectId)
+            .eq('date', date)
+            .eq('is_deleted', false);
+        
+        return { data, error };
+    },
+
+    /**
      * Update status of a work entry
      * @param {string} id
      * @param {string} status
@@ -164,6 +268,33 @@ export const workService = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to update status');
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Delete a work entry (Soft Delete)
+     * @param {string} id
+     */
+    async deleteWorkEntry(id) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+            throw new Error("Authentication token required to delete work entry");
+        }
+
+        const response = await fetch(`${API_BASE}/api/work/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete work entry');
         }
 
         return await response.json();

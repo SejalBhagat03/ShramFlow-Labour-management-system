@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/AppLayout';
 import { useLabourLedger } from '@/hooks/useLabourLedger';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { paymentService } from '@/services/paymentService';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -37,7 +40,26 @@ const LabourLedger = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
     const { data: ledger, isLoading, error } = useLabourLedger(id);
+
+    // Settle Dues Mutation
+    const settleDues = useMutation({
+        mutationFn: async () => {
+            if (!ledger || !ledger.balance || ledger.balance <= 0) {
+                throw new Error("No pending balance to settle");
+            }
+            return await paymentService.bulkSettleEntries(id, ledger.balance, 'cash');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['labour_ledger', id] });
+            queryClient.invalidateQueries({ queryKey: ['labourers'] });
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
 
     if (error) {
         return (
@@ -73,22 +95,39 @@ const LabourLedger = () => {
                                 <p className="text-muted-foreground mt-1 text-xs sm:text-sm font-medium">Detailed financial history for {ledger?.name || '...'}</p>
                             </div>
                         </div>
-                        <Button
-                            size="sm"
-                            className="gradient-primary h-9 px-4 rounded-xl font-bold shadow-glow text-xs"
-                            onClick={handleDownload}
-                            disabled={isLoading || !ledger}
-                        >
-                            <FileDown className="h-3.5 w-3.5 mr-2" />
-                            Download PDF
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {user?.role === 'supervisor' && ledger?.balance > 0 && (
+                                <Button
+                                    size="sm"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 rounded-xl font-bold shadow-glow text-xs"
+                                    onClick={() => {
+                                        if (window.confirm(`Are you sure you want to settle ₹${ledger.balance} for ${ledger.name}?`)) {
+                                            settleDues.mutate();
+                                        }
+                                    }}
+                                    disabled={settleDues.isPending}
+                                >
+                                    <Wallet className="h-3.5 w-3.5 mr-2" />
+                                    {settleDues.isPending ? "Settling..." : "Settle All Dues"}
+                                </Button>
+                            )}
+                            <Button
+                                size="sm"
+                                className="gradient-primary h-9 px-4 rounded-xl font-bold shadow-glow text-xs"
+                                onClick={handleDownload}
+                                disabled={isLoading || !ledger}
+                            >
+                                <FileDown className="h-3.5 w-3.5 mr-2" />
+                                Download PDF
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     {isLoading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
+                        Array.from({ length: 4 }).map((_, i) => (
                             <Skeleton key={i} className="h-32 rounded-2xl" />
                         ))
                     ) : (
@@ -99,10 +138,10 @@ const LabourLedger = () => {
                                 </div>
                                 <CardHeader className="pb-2">
                                     <CardDescription className="text-success font-medium">Total Earned</CardDescription>
-                                    <CardTitle className="text-3xl font-bold">₹{ledger.totalEarned.toLocaleString()}</CardTitle>
+                                    <CardTitle className="text-3xl font-bold">₹{ledger.totalEarned?.toLocaleString() || 0}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-xs text-muted-foreground">From {ledger.entries.length} approved work days</p>
+                                    <p className="text-xs text-muted-foreground">From {ledger.entries?.length || 0} approved work days</p>
                                 </CardContent>
                             </Card>
 
@@ -112,10 +151,23 @@ const LabourLedger = () => {
                                 </div>
                                 <CardHeader className="pb-2">
                                     <CardDescription className="text-blue-600 font-medium">Total Paid</CardDescription>
-                                    <CardTitle className="text-3xl font-bold">₹{ledger.totalPaid.toLocaleString()}</CardTitle>
+                                    <CardTitle className="text-3xl font-bold">₹{ledger.totalPaid?.toLocaleString() || 0}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-xs text-muted-foreground">Advances & final settlements</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="rounded-2xl border-none bg-red-500/5 shadow-sm overflow-hidden relative">
+                                <div className="absolute top-0 right-0 p-4 text-red-500/20">
+                                    <TrendingDown className="h-16 w-16" />
+                                </div>
+                                <CardHeader className="pb-2">
+                                    <CardDescription className="text-red-600 font-medium">Total Deducted</CardDescription>
+                                    <CardTitle className="text-3xl font-bold">₹{ledger.totalDeductions?.toLocaleString() || 0}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-xs text-muted-foreground">Fines, tool damages, food, etc.</p>
                                 </CardContent>
                             </Card>
 
@@ -133,7 +185,7 @@ const LabourLedger = () => {
                                     )}>
                                         Balance {ledger.balance >= 0 ? 'Pending' : 'Due'}
                                     </CardDescription>
-                                    <CardTitle className="text-3xl font-bold">₹{Math.abs(ledger.balance).toLocaleString()}</CardTitle>
+                                    <CardTitle className="text-3xl font-bold">₹{Math.abs(ledger.balance || 0).toLocaleString()}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-xs text-muted-foreground">
@@ -207,6 +259,7 @@ const LabourLedger = () => {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Date</TableHead>
+                                            <TableHead>Type</TableHead>
                                             <TableHead>Method</TableHead>
                                             <TableHead className="text-right">Amount</TableHead>
                                         </TableRow>
@@ -214,14 +267,29 @@ const LabourLedger = () => {
                                     <TableBody>
                                         {ledger.payments.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                                                     No payments found
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
                                             ledger.payments.map((p) => (
                                                 <TableRow key={p.id}>
-                                                    <TableCell className="font-medium">{p.transaction_date}</TableCell>
+                                                    <TableCell className="font-medium">
+                                                        {new Date(p.transaction_date).toLocaleDateString()}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="secondary" className={cn(
+                                                            "uppercase text-[10px]",
+                                                            p.payment_type === 'deduction' && "bg-destructive/10 text-destructive border-destructive"
+                                                        )}>
+                                                            {p.payment_type || 'Advance'}
+                                                        </Badge>
+                                                        {p.deduction_reason && (
+                                                            <div className="text-[10px] text-muted-foreground mt-1 max-w-[120px] truncate">
+                                                                {p.deduction_reason}
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell>
                                                         <Badge variant="outline" className="uppercase text-[10px]">
                                                             {p.method}

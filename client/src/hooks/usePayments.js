@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { paymentService } from "@/services/paymentService";
 
@@ -29,6 +29,8 @@ export const usePayments = () => {
                   razorpay_order_id,
                   razorpay_payment_id,
                   created_at,
+                  /* payment_type,
+                  deduction_reason, */
                   labourer:labourers(id, name, name_hindi)
                 `);
 

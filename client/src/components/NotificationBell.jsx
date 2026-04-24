@@ -1,202 +1,112 @@
-import { useState, useEffect } from "react";
-import { Bell, Check, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { Bell, Mail, Info, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { notificationService } from "@/services/notificationService";
-import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { ApproveAdvanceDialog } from "./ApproveAdvanceDialog";
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
-export function NotificationBell() {
-    const { user } = useAuth();
-    const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isOpen, setIsOpen] = useState(false);
+const getIcon = (type) => {
+    switch (type) {
+        case 'success': return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+        case 'warning': return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+        case 'error': return <XCircle className="h-4 w-4 text-destructive" />;
+        default: return <Info className="h-4 w-4 text-primary" />;
+    }
+};
 
-    useEffect(() => {
-        if (!user) return;
+export const NotificationBell = () => {
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+    const [open, setOpen] = useState(false);
+    const navigate = useNavigate();
 
-        // Initial fetch
-        const fetchNotifications = async () => {
-            try {
-                const data = await notificationService.getNotifications(user.id);
-                if (data) {
-                    setNotifications(data);
-                    setUnreadCount(data.filter((n) => !n.read).length);
-                }
-            } catch (error) {
-                if (import.meta.env.DEV) console.error("Failed to load notifications", error);
-            }
-        };
-
-        fetchNotifications();
-
-        // Real-time subscription
-        const channel = notificationService.subscribeToNotifications(user.id, (payload) => {
-            // Add new notification to top
-            setNotifications((prev) => [payload.new, ...prev]);
-            setUnreadCount((prev) => prev + 1);
-
-            // Optional: Play a sound or show a toast
-            const audio = new Audio("/notification.mp3"); // Ensure this file exists or use a reliable URL
-            audio.play().catch(e => {
-                if (import.meta.env.DEV) console.log("Audio play failed", e);
-            });
-        });
-
-        return () => {
-            channel.unsubscribe();
-        };
-    }, [user]);
-
-    const handleMarkAsRead = async (id) => {
-        try {
-            await notificationService.markAsRead(id);
-            setNotifications((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-            );
-            setUnreadCount((prev) => Math.max(0, prev - 1));
-        } catch (error) {
-            if (import.meta.env.DEV) console.error("Failed to mark as read", error);
+    const handleNotificationClick = (n) => {
+        if (!n.read) markAsRead.mutate(n.id);
+        if (n.action_url) {
+            navigate(n.action_url);
+            setOpen(false);
         }
-    };
-
-    const handleMarkAllRead = async () => {
-        try {
-            if (!user) return;
-            await notificationService.markAllAsRead(user.id);
-            setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-            setUnreadCount(0);
-        } catch (error) {
-            if (import.meta.env.DEV) console.error("Failed to mark all as read", error);
-        }
-    };
-
-    const [actingNotification, setActingNotification] = useState(null);
-    const [approvalRequest, setApprovalRequest] = useState(null);
-    const [isApproveOpen, setIsApproveOpen] = useState(false);
-
-    const handleApproveClick = (notification, e) => {
-        e.stopPropagation(); // Prevent marking as read or closing dropdown immediately
-        // Construct request object from metadata
-        if (notification.metadata?.request_id) {
-            setActingNotification(notification);
-            setApprovalRequest({
-                id: notification.metadata.request_id,
-                amount: notification.metadata.amount,
-                labourer: { name: notification.metadata.labourer_name || 'Unknown' }
-            });
-            setIsApproveOpen(true);
-            setIsOpen(false); // Close dropdown
-        }
-    };
-
-    const handleApprovalSuccess = () => {
-        // Mark the specific acting notification as read/handled
-        if (actingNotification) {
-            handleMarkAsRead(actingNotification.id);
-        }
-        setApprovalRequest(null);
-        setActingNotification(null);
     };
 
     return (
-        <>
-            <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10">
-                        <Bell className={cn("h-5 w-5", unreadCount > 0 && "text-primary animate-pulse")} />
-                        {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white animate-bounce" />
-                        )}
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                    <div className="flex items-center justify-between px-2 py-1.5">
-                        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                        {unreadCount > 0 && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-6 px-2 text-muted-foreground hover:text-primary"
-                                onClick={handleMarkAllRead}
-                            >
-                                Mark all read
-                            </Button>
-                        )}
-                    </div>
-                    <DropdownMenuSeparator />
-                    <div className="max-h-[300px] overflow-y-auto">
-                        {notifications.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                                No notifications
-                            </div>
-                        ) : (
-                            notifications.map((notification) => (
-                                <DropdownMenuItem
-                                    key={notification.id}
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full hover:bg-primary/5 transition-colors">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in duration-300 shadow-glow">
+                            {unreadCount}
+                        </span>
+                    )}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0 rounded-2xl shadow-2xl glass-strong border-white/20" align="end">
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
+                    <h3 className="font-bold text-sm">Notifications</h3>
+                    {unreadCount > 0 && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-[10px] h-7 px-2 hover:bg-primary/10 text-primary font-bold"
+                            onClick={() => markAllAsRead.mutate()}
+                        >
+                            Mark all as read
+                        </Button>
+                    )}
+                </div>
+                <ScrollArea className="h-80">
+                    {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                            <Mail className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                            <p className="text-xs text-muted-foreground">All caught up!</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-white/5">
+                            {notifications.map((n) => (
+                                <div
+                                    key={n.id}
+                                    onClick={() => handleNotificationClick(n)}
                                     className={cn(
-                                        "flex flex-col items-start gap-1 p-3 cursor-pointer focus:bg-accent relative",
-                                        !notification.read ? "bg-muted/40" : "opacity-70 grayscale-[0.3]"
+                                        "p-4 cursor-pointer transition-colors hover:bg-primary/5 group relative",
+                                        !n.read && "bg-primary/10"
                                     )}
-                                    onClick={() => handleMarkAsRead(notification.id)}
                                 >
-                                    <div className="flex w-full justify-between gap-2">
-                                        <span className={cn("font-medium text-sm", !notification.read && "text-primary")}>
-                                            {notification.title}
-                                        </span>
-                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                        {notification.message}
-                                    </p>
-
-                                    {/* Action Buttons for Payment Requests */}
-                                    {notification.type === 'payment_request' && notification.metadata?.request_id && (
-                                        <div className="mt-2 flex gap-2 w-full">
-                                            {notification.read ? (
-                                                <Badge variant="outline" className="w-full justify-center bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 py-1">
-                                                    <Check className="h-3 w-3" /> Approved & Handled
-                                                </Badge>
-                                            ) : (
-                                                <Button
-                                                    size="sm"
-                                                    className="w-full text-xs h-7 bg-emerald-600 hover:bg-emerald-700"
-                                                    onClick={(e) => handleApproveClick(notification, e)}
-                                                >
-                                                    Approve
-                                                </Button>
-                                            )}
+                                    {!n.read && (
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
+                                    )}
+                                    <div className="flex gap-3">
+                                        <div className="mt-0.5">
+                                            {getIcon(n.type)}
                                         </div>
-                                    )}
-
-                                    {!notification.read && (
-                                        <div className="w-2 h-2 rounded-full bg-primary absolute right-2 top-1/2 -translate-y-1/2 opacity-50" />
-                                    )}
-                                </DropdownMenuItem>
-                            ))
-                        )}
-                    </div>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <ApproveAdvanceDialog
-                open={isApproveOpen}
-                onOpenChange={setIsApproveOpen}
-                request={approvalRequest}
-                onSuccess={handleApprovalSuccess}
-            />
-        </>
+                                        <div className="flex-1 space-y-1">
+                                            <p className={cn("text-xs leading-none", !n.read ? "font-bold" : "font-medium")}>
+                                                {n.title}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground line-clamp-2">
+                                                {n.message}
+                                            </p>
+                                            <p className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-tighter">
+                                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </ScrollArea>
+                <div className="p-2 border-t border-white/5 bg-muted/20">
+                    <Button variant="ghost" className="w-full h-8 text-[10px] font-bold text-muted-foreground hover:text-foreground">
+                        View All Activity
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
     );
-}
+};

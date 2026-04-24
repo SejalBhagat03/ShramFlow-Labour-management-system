@@ -39,14 +39,52 @@ exports.protect = async (req, res, next) => {
 
         // Attach user
         req.user = user;
+        console.log(`[AuthMiddleware] User: ${user.id}, Email: ${user.email}`);
         
-        // 3. Resolve Organization ID (DB -> Metadata -> Fallback)
-        const orgId = profile?.organization_id || user.user_metadata?.organization_id;
+        // 3. Resolve Organization ID (DB -> Metadata -> Query -> Header)
+        let orgId = profile?.organization_id || 
+                      user.user_metadata?.organization_id || 
+                      req.query.organization_id || 
+                      req.headers['x-organization-id'];
         
+        console.log(`[AuthMiddleware] Initial orgId: ${orgId} (from Profile: ${!!profile?.organization_id}, Metadata: ${!!user.user_metadata?.organization_id})`);
+
+        // 4. Fallback for Supervisors/Admins if still no orgId
+        if (!orgId || orgId === 'null') {
+            console.log('[AuthMiddleware] Attempting fallback for supervisor/admin...');
+            const { data: roleData, error: roleErr } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', user.id)
+                .eq('role', 'supervisor') // Only check for supervisor to avoid enum error
+                .maybeSingle();
+
+            if (roleErr) console.error('[AuthMiddleware] Role check error:', roleErr.message);
+
+            if (roleData) {
+                console.log(`[AuthMiddleware] Detected role: ${roleData.role}, fetching first organization...`);
+                const { data: firstOrg, error: orgErr } = await supabase
+                    .from('organizations')
+                    .select('id')
+                    .order('created_at', { ascending: true })
+                    .limit(1)
+                    .maybeSingle();
+                
+                if (orgErr) console.error('[AuthMiddleware] Org fetch error:', orgErr.message);
+
+                if (firstOrg) {
+                    orgId = firstOrg.id;
+                    console.log('[AuthMiddleware] Fallback SUCCESS: orgId =', orgId);
+                } else {
+                    console.warn('[AuthMiddleware] Fallback FAILED: No organizations found');
+                }
+            } else {
+                console.log('[AuthMiddleware] No supervisor/admin role found for fallback');
+            }
+        }
+
         if (!orgId) {
-            console.warn('[AuthMiddleware] No organization_id found for user:', user.id);
-            // We allow the request to proceed but attach a null orgId
-            // The controllers will handle if they strictly need it
+            console.warn('[AuthMiddleware] Final organization_id is NULL');
             req.orgId = null;
         } else {
             req.orgId = orgId;
@@ -91,6 +129,35 @@ exports.authorize = (roles) => {
             next();
         } catch (error) {
             console.error('Authorize Middleware Error:', error);
+            res.status(403).json({ error: 'Forbidden' });
+        }
+    };
+};
+
+/**
+ * checkPermission
+ * Middleware to restrict access based on specific permissions
+ * @param {string} permission - The permission string to check
+ */
+exports.checkPermission = (permission) => {
+    return async (req, res, next) => {
+        try {
+            // Check if user has the specific permission through any of their roles
+            const { data, error } = await supabase
+                .rpc('user_has_permission', { p_permission: permission });
+
+            if (error) {
+                console.error('[CheckPermission] Error:', error.message);
+                return res.status(500).json({ error: 'Permission check failed' });
+            }
+
+            if (!data) {
+                return res.status(403).json({ error: `Not authorized: Missing permission '${permission}'` });
+            }
+
+            next();
+        } catch (error) {
+            console.error('CheckPermission Middleware Error:', error);
             res.status(403).json({ error: 'Forbidden' });
         }
     };

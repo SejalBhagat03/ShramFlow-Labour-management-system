@@ -109,4 +109,31 @@ export const paymentService = {
             throw error;
         }
     },
+
+    /**
+     * Bulk settle all approved entries for a labourer
+     * @param {string} labourerId
+     * @param {number} amount
+     * @param {string} method
+     */
+    async bulkSettleEntries(labourerId, amount, method = 'cash') {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE}/api/payment/bulk-settle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ labourer_id: labourerId, amount, method }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Bulk settlement failed');
+        }
+
+        return await response.json();
+    },
 };

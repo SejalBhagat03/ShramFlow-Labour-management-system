@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,17 +42,27 @@ const RoleManagement = () => {
      * Fetches all users with their associated roles and profiles from Supabase.
      */
     const { data: usersWithRoles = [], isLoading } = useQuery({
-        queryKey: ["users-with-roles"],
+        queryKey: ["users-with-roles", user?.organization_id],
         queryFn: async () => {
-            // Get all user roles
-            const { data: roles, error: rolesError } = await supabase.from("user_roles").select("*");
-
-            if (rolesError) throw rolesError;
-
-            // Get all profiles
-            const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*");
+            // 1. Get all profiles for this organization
+            const { data: profiles, error: profilesError } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("organization_id", user.organization_id);
 
             if (profilesError) throw profilesError;
+
+            const userIds = profiles.map(p => p.user_id).filter(Boolean);
+
+            if (userIds.length === 0) return [];
+
+            // 2. Get roles for these users
+            const { data: roles, error: rolesError } = await supabase
+                .from("user_roles")
+                .select("*")
+                .in("user_id", userIds);
+
+            if (rolesError) throw rolesError;
 
             // Combine roles with profiles data
             const usersWithRolesMapped = roles.map((role) => {

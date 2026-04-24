@@ -159,3 +159,96 @@ exports.createManualPayment = async (req, res, next) => {
         next(error);
     }
 };
+
+/**
+ * autoSettlePayments
+ * Groups approved entries by labourer and project, creates a payment record, and marks entries as paid.
+ */
+exports.autoSettlePayments = async (req, res, next) => {
+    try {
+        const { project_id, global = false, method = 'cash' } = req.body;
+
+        // 1. Fetch approved work entries that aren't paid yet
+        let query = supabase
+            .from('work_entries')
+            .select('*')
+            .eq('organization_id', req.orgId)
+            .eq('status', 'approved')
+            .is('payment_id', null);
+
+        if (!global && project_id) {
+            query = query.eq('project_id', project_id);
+        } else if (!global && !project_id) {
+            return res.status(400).json({ error: 'project_id required for project-based settlement' });
+        }
+
+        const { data: entries, error: fetchError } = await query;
+        if (fetchError) throw fetchError;
+        if (!entries || entries.length === 0) {
+            return res.status(200).json({ message: 'No pending entries to settle', count: 0 });
+        }
+
+        // 2. Group by labourer
+        const labourerGroups = {};
+        entries.forEach(e => {
+            if (!labourerGroups[e.labourer_id]) {
+                labourerGroups[e.labourer_id] = {
+                    total: 0,
+                    entryIds: [],
+                    projectIds: new Set()
+                };
+            }
+            labourerGroups[e.labourer_id].total += (Number(e.amount) || 0);
+            labourerGroups[e.labourer_id].entryIds.push(e.id);
+            if (e.project_id) labourerGroups[e.labourer_id].projectIds.add(e.project_id);
+        });
+
+        // 3. Process each group
+        const results = [];
+        for (const [labourerId, group] of Object.entries(labourerGroups)) {
+            // Create payment record
+            const { data: payment, error: pError } = await supabase
+                .from('payments')
+                .insert({
+                    organization_id: req.orgId,
+                    labourer_id: labourerId,
+                    project_id: global ? null : Array.from(group.projectIds)[0], // Use major project if global
+                    amount: group.total,
+                    method,
+                    status: 'paid',
+                    transaction_date: new Date().toISOString().split('T')[0],
+                    paid_at: new Date().toISOString()
+                })
+                .select()
+                .single();
+
+            if (pError) {
+                console.error(`[AutoSettle] Failed for labourer ${labourerId}:`, pError);
+                continue;
+            }
+
+            // Update work entries with payment_id and status
+            await supabase
+                .from('work_entries')
+                .update({ 
+                    payment_id: payment.id,
+                    status: 'paid'
+                })
+                .in('id', group.entryIds);
+
+            results.push({ labourerId, amount: group.total, payment_id: payment.id });
+        }
+
+        res.json({
+            success: true,
+            settled_count: results.length,
+            total_entries: entries.length,
+            details: results
+        });
+    } catch (error) {
+        console.error('[AutoSettle] Controller Error:', error);
+        next(error);
+    }
+};
+
+module.exports = exports;

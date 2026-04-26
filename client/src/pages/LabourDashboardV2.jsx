@@ -35,7 +35,7 @@ const LabourDashboardV2 = () => {
 
     const handleChange = (id, value) => {
         // allow only numbers
-        const num = value.replace(/[^0-9]/g, '');
+        const num = (value || '').replace(/[^0-9]/g, '');
         setClaimValues(prev => ({ ...prev, [id]: num }));
     };
 

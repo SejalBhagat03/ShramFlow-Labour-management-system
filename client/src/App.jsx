@@ -209,7 +209,7 @@ const AppRoutes = () => {
                 path="/command-center"
                 element={
                     <ProtectedRoute allowedRoles={["supervisor"]}>
-                        <CommandCenter />
+                        <SupervisorDashboardV2 />
                     </ProtectedRoute>
                 }
             />
@@ -381,6 +381,8 @@ const AppRoutes = () => {
     );
 };
 
+import ErrorBoundary from "./components/ErrorBoundary";
+
 /* ---------------------------------- */
 /* App Wrapper */
 /* ---------------------------------- */
@@ -391,7 +393,9 @@ const App = () => (
             <Sonner />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <AuthProvider>
-                    <AppRoutes />
+                    <ErrorBoundary>
+                        <AppRoutes />
+                    </ErrorBoundary>
                     <Chatbot />
                     <Commander />
                     <OfflineIndicator />

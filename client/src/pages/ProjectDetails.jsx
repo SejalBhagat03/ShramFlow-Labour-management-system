@@ -27,6 +27,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { StatCard } from '@/components/StatCard';
 import { useFocusProject } from '@/hooks/useFocusProject';
+import { ProjectHealthWidget } from '@/components/projects/ProjectHealthWidget';
 
 const ProjectDetails = () => {
     const { id } = useParams();
@@ -118,6 +119,9 @@ const ProjectDetails = () => {
                 <div className="grid lg:grid-cols-3 gap-6 md:gap-8 relative z-10">
                     {/* Left: Project Stats & Pulse */}
                     <div className="lg:col-span-2 space-y-6 md:space-y-8">
+                        {/* 🧠 AI Prediction Widget */}
+                        <ProjectHealthWidget projectId={id} />
+
                         {/* Summary Stats */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <StatCard
@@ -230,6 +234,37 @@ const ProjectDetails = () => {
                                         </p>
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Live Workforce */}
+                        <Card className="glass border-none shadow-2xl rounded-[2rem] overflow-hidden">
+                            <CardHeader className="border-b border-white/5 bg-white/5">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Users className="h-4 w-4 text-primary" />
+                                    On-Site Workforce
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    {project.active_labourers?.length > 0 ? (
+                                        project.active_labourers.map(lab => (
+                                            <div key={lab.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
+                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                                    {lab.name?.charAt(0)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-bold truncate">{lab.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground">{lab.role || 'Worker'}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-full py-8 text-center opacity-40">
+                                            <p className="text-sm italic">No active workforce recorded for today.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

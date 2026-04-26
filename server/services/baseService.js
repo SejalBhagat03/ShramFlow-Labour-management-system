@@ -18,11 +18,21 @@ exports.moveToTrash = async ({ table, id, orgId, userId }) => {
     }
 
     // 2. Create Trash Snapshot
+    const tableToEntity = {
+        'labourers': 'Labourer',
+        'work_entries': 'WorkEntry',
+        'payments': 'Payment',
+        'projects': 'Project',
+        'work_acknowledgments': 'WorkDispute'
+    };
+
+    const entityType = tableToEntity[table] || (table.charAt(0).toUpperCase() + table.slice(1, -1));
+
     const { error: trashError } = await supabase
         .from('trash')
         .insert({
             organization_id: orgId,
-            entity_type: table.charAt(0).toUpperCase() + table.slice(1, -1), // e.g. "Labourer" or "WorkEntry"
+            entity_type: entityType,
             entity_id: id,
             data: record,
             deleted_by: userId

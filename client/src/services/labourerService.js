@@ -39,18 +39,25 @@ export const labourerService = {
     },
 
     /**
-     * Get labourer by ID
+     * Get labourer by ID (Proxied via Backend)
      * @param {string} id
      */
     async getLabourerById(id) {
-        const { data, error } = await supabase
-            .from('labourers')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const sessionStr = localStorage.getItem('sb-lmpdptbtiqqqlsrzagrh-auth-token');
+        const session = sessionStr ? JSON.parse(sessionStr) : null;
 
-        if (error) throw error;
-        return data;
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${session?.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch labourer');
+        }
+
+        return await response.json();
     },
 
     /**

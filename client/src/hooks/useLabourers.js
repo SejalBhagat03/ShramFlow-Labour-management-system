@@ -10,26 +10,23 @@ export const useLabourers = () => {
     const queryClient = useQueryClient();
 
     const { data: labourers = [], isLoading, error } = useQuery({
-        queryKey: ['labourers', user?.id, user?.organization_id],
+        queryKey: ['labourers', user?.id],
         queryFn: async () => {
-            const orgId = user?.organization_id;
-            const isValidOrg = orgId && orgId !== 'null' && orgId !== 'undefined';
-
-            if (!user || !isValidOrg) return [];
-            // only supervisors/admins should ever fetch the full list
-            if (user.role !== 'supervisor') {
-                // return empty array rather than letting RLS 400
-                return [];
-            }
+            if (!user) return [];
+            if (user.role !== 'supervisor') return [];
 
             try {
-                const { data, error } = await supabase
-                    .from('labourers')
-                    .select('*')
-                    .eq('organization_id', user.organization_id)
-                    .order('created_at', { ascending: false });
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers`, {
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`
+                    }
+                });
 
-                if (error) throw error;
+                if (!response.ok) {
+                    throw new Error('Failed to fetch labourers from backend');
+                }
+
+                const data = await response.json();
                 
                 // Cache for offline use
                 await offlineSyncService.cacheMetadata('labourers', data);
@@ -38,15 +35,12 @@ export const useLabourers = () => {
                 // If offline, try to get from cache
                 if (!navigator.onLine) {
                     const cached = await offlineSyncService.getCachedMetadata('labourers');
-                    if (cached) {
-                        console.log("Using cached labourers (offline)");
-                        return cached;
-                    }
+                    if (cached) return cached;
                 }
                 throw err;
             }
         },
-        enabled: !!user && !!user.organization_id && user.organization_id !== 'null' && user.organization_id !== 'undefined'
+        enabled: !!user && !!session
     });
 
     const createLabourer = useMutation({
@@ -82,51 +76,38 @@ export const useLabourers = () => {
                     throw new Error('Invalid email format (or phone number invalid)');
                 }
 
-                const { data: funcData, error: funcError } = await supabase.functions.invoke('create-labour-user-', {
-                    body: {
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/create-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`
+                    },
+                    body: JSON.stringify({
                         email: emailToUse,
                         password: formData.password,
                         fullName: formData.name,
                         phone: formData.phone,
                         orgId: user.organization_id
-                    },
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`
-                    }
+                    })
                 });
 
-                if (funcError) {
-                    let errorMessage = funcError.message || "Unknown error";
-
-                    if (funcError.context && funcError.context.json) {
-                        // Check if the parsed JSON body is available in context (some client versions)
-                        const body = await funcError.context.json();
-                        if (body && body.error) errorMessage = body.error;
-                    } else if (funcError.context && funcError.context.error) {
-                        // Sometimes the error is nested in context
-                        errorMessage = funcError.context.error;
-                    } else if (typeof funcError === 'object' && funcError.error) {
-                        // Direct error object
-                        errorMessage = funcError.error;
-                    } else if (typeof funcError === 'string') {
-                        try {
-                            const parsed = JSON.parse(funcError);
-                            errorMessage = parsed.error || funcError;
-                        } catch (e) {
-                            errorMessage = funcError;
-                        }
-                    }
-
-                    throw new Error(`Login creation failed: ${errorMessage}`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create login account');
                 }
+
+                const funcData = await response.json();
                 labourUserId = funcData?.userId || null;
             }
 
-            const { data, error } = await supabase
-                .from('labourers')
-                .insert({
-                    organization_id: user.organization_id,
-                    supervisor_id: user.id,
+            // 2. Create the worker profile in the 'labourers' table via backend
+            const profileResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
                     user_id: labourUserId,
                     name: formData.name,
                     name_hindi: formData.name_hindi || null,
@@ -137,11 +118,14 @@ export const useLabourers = () => {
                     status: formData.status || 'active',
                     location: formData.location || null
                 })
-                .select()
-                .single();
+            });
 
-            if (error) throw error;
-            return data;
+            if (!profileResponse.ok) {
+                const errorData = await profileResponse.json();
+                throw new Error(errorData.error || 'Failed to create worker profile');
+            }
+
+            return await profileResponse.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['labourers'] });
@@ -162,24 +146,20 @@ export const useLabourers = () => {
 
     const updateLabourer = useMutation({
         mutationFn: async ({ id, ...formData }) => {
-            const { data, error } = await supabase
-                .from('labourers')
-                .update({
-                    name: formData.name,
-                    name_hindi: formData.name_hindi || null,
-                    phone: formData.phone || null,
-                    role: formData.role,
-                    daily_rate: formData.daily_rate,
-                    rate_per_meter: formData.rate_per_meter || 0,
-                    status: formData.status || 'active',
-                    location: formData.location || null
-                })
-                .eq('id', id)
-                .select()
-                .single();
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(formData)
+            });
 
-            if (error) throw error;
-            return data;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update labourer');
+            }
+            return await response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['labourers'] });
@@ -235,15 +215,19 @@ export const useLabourers = () => {
         createLabourer,
         updateLabourer,
         deleteLabourer,
-        getLabourBalance: async (labourId) => {
-            const { data, error } = await supabase.rpc('get_labour_balance', { labour_uuid: labourId });
-            if (error) throw error;
-            return data;
+        getLabourBalance: async (id) => {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/balance`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            if (!response.ok) return 0;
+            return await response.json();
         },
-        getLabourStats: async (labourId) => {
-            const { data, error } = await supabase.rpc('get_labour_stats', { labour_uuid: labourId });
-            if (error) throw error;
-            return data;
+        getLabourStats: async (id) => {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/stats`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            if (!response.ok) return { total_earned: 0, total_paid: 0 };
+            return await response.json();
         }
     };
 };

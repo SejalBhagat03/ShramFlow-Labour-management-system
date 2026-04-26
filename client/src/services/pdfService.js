@@ -113,6 +113,6 @@ export const pdfService = {
             );
         }
 
-        doc.save(`labour-ledger-${name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+        doc.save(`labour-ledger-${(name || 'unnamed').replace(/\s+/g, '-').toLowerCase()}.pdf`);
     }
 };

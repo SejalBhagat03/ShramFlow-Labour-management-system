@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { MessageCircle, X, Send, Bot, User, Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +16,10 @@ const VOICE_ENABLED_KEY = "shramflow_voice_enabled";
 
 // Detect if text is primarily Hindi
 const isHindiText = (text) => {
+    if (!text) return false;
     const hindiPattern = /[\u0900-\u097F]/;
     const hindiChars = (text.match(/[\u0900-\u097F]/g) || []).length;
-    const totalChars = text.replace(/\s/g, "").length;
+    const totalChars = text.replace(/\s/g, "").length || 1;
     return hindiPattern.test(text) && hindiChars / totalChars > 0.3;
 };
 
@@ -35,6 +37,7 @@ const getEnglishVoice = () => {
 
 export const Chatbot = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
@@ -277,7 +280,7 @@ export const Chatbot = () => {
                 body: JSON.stringify({
                     messages: apiMessages,
                     userRole: user?.role || "labour",
-                    language: detectedLang,
+                    language: i18n.language, // Use software language instead of detected lang
                 })
             });
 

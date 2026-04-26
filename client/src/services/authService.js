@@ -28,37 +28,23 @@ export const authService = {
         log(`Starting profile fetch for ${userId}`);
 
         try {
-            // 1. Fetch profile
-            log(`DB Calling: profiles.select(*) for ${userId}`);
-            const { data: profile, error: profileError, status: profileStatus } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            if (profileError) {
-                log(`Profile DB Error: ${profileError.message} (status: ${profileStatus})`);
-            } else {
-                log(`Profile DB SUCCESS: ${profile ? 'Found' : 'Not Found'}`);
-            }
-
-            // 2. Fetch role
-            log(`DB Calling: user_roles.select(role) for ${userId}`);
-            const { data: roleData, error: roleError } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', userId)
-                .maybeSingle();
+            // 1 & 2. Fetch profile and role in parallel for speed
+            log(`DB Calling: profiles and user_roles in parallel for ${userId}`);
             
-            if (roleError) {
-                log(`Role DB Error: ${roleError.message}`);
-            } else {
-                log(`Role DB SUCCESS: ${roleData?.role || 'None'}`);
-            }
+            const [profileRes, roleRes] = await Promise.all([
+                supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+                supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle()
+            ]);
+
+            const { data: profile, error: profileError } = profileRes;
+            const { data: roleData, error: roleError } = roleRes;
+
+            if (profileError) log(`Profile DB Error: ${profileError.message}`);
+            if (roleError) log(`Role DB Error: ${roleError.message}`);
 
             // 3. Sync and Return
             if (profile || roleData) {
-                log(`Constructing User object from DB results`);
+                log(`Constructing User object from DB results (${roleData?.role || profile?.role || 'fallback'})`);
                 return new User({
                     id: userId,
                     email: profile?.email || sessionUser?.email || '',

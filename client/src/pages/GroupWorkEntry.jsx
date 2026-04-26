@@ -696,17 +696,15 @@ const GroupWorkEntry = () => {
             </div>
             <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
                 <DialogContent className="sm:max-w-lg">
-                    <div className="text-center py-4">
+                    <DialogHeader>
                         <div className="mx-auto w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mb-3">
                             <CheckCircle className="h-8 w-8 text-success" />
                         </div>
-                        <DialogHeader>
-                            <DialogTitle className="text-xl text-center">Group Entries Saved! ✅</DialogTitle>
-                            <DialogDescription className="text-center">
-                                Successfully recorded work for {savedWorkers.length} labourers.
-                            </DialogDescription>
-                        </DialogHeader>
-                    </div>
+                        <DialogTitle className="text-xl text-center">Group Entries Saved! ✅</DialogTitle>
+                        <DialogDescription className="text-center">
+                            Successfully recorded work for {savedWorkers.length} labourers.
+                        </DialogDescription>
+                    </DialogHeader>
 
                     <ScrollArea className="max-h-[300px] pr-4">
                         <div className="space-y-3">

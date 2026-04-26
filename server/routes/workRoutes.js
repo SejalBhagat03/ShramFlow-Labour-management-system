@@ -10,6 +10,7 @@ router.post('/undo', protect, authorize(['supervisor']), workController.undoLast
 router.get('/export-weekly', protect, authorize(['supervisor']), workController.exportWeeklyReport);
 router.put('/:id', protect, authorize(['supervisor']), workController.updateWorkEntry);
 router.patch('/:id/status', protect, authorize(['supervisor']), workController.updateWorkStatus);
+router.post('/smart-split', protect, authorize(['supervisor']), workController.getSmartSplit);
 router.delete('/:id', protect, authorize(['supervisor']), workController.deleteWorkEntry);
 
 module.exports = router;

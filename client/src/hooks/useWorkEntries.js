@@ -21,7 +21,7 @@ export const useWorkEntries = (labourerId) => {
 
             return await workService.getWorkEntries(labourerId, user?.organization_id);
         },
-        enabled: !!user && !!user.organization_id && user.organization_id !== 'null' && user.organization_id !== 'undefined'
+        enabled: !!user
     });
 
     const createWorkEntry = useMutation({

@@ -1,77 +1,23 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/AppLayout';
 import { useLabourers } from '@/hooks/useLabourers';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { 
-    Search, 
-    Filter, 
-    UserPlus, 
-    Phone, 
-    MapPin, 
-    Loader2, 
-    BookOpen, 
-    User, 
     Activity, 
-    Percent, 
-    Languages, 
-    IndianRupee, 
-    Sparkles,
-    Eye,
-    Pencil,
-    Trash2,
-    CheckCircle2,
-    Calendar,
-    ChevronRight,
-    ExternalLink,
     Plus,
-    FileText,
-    PieChart,
-    MessageCircle,
-    ArrowUpDown,
-    Download,
-    ClipboardCheck,
     Wallet,
-    Users
+    Users,
+    Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { TrustScoreBadge } from '@/components/TrustScoreBadge';
-import { translationService } from '@/services/translationService';
-import { generateWhatsAppLink, whatsappTemplates } from '@/utils/whatsapp';
 
 // New Modular Components
 import { StatsCard } from '@/components/workforce/StatsCard';
 import { LabourCard } from '@/components/workforce/LabourCard';
 import { FilterBar } from '@/components/workforce/FilterBar';
+import { LabourerModal } from '@/components/modals/LabourerModal';
 
 const Labourers = () => {
     const { t, i18n } = useTranslation();
@@ -92,18 +38,6 @@ const Labourers = () => {
     const [sortOption, setSortOption] = useState('recent');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [selectedLabour, setSelectedLabour] = useState(null);
-
-    const [formData, setFormData] = useState({
-        name: '',
-        name_hindi: '',
-        phone: '',
-        role: 'Labour',
-        daily_rate: 500,
-        rate_per_meter: 0,
-        status: 'active',
-        location: '',
-        password: undefined
-    });
 
     const filteredLabourers = useMemo(() => {
         return labourers.filter((labour) => {
@@ -141,16 +75,6 @@ const Labourers = () => {
 
     const handleEdit = (labour) => {
         setSelectedLabour(labour);
-        setFormData({
-            name: labour.name,
-            name_hindi: labour.name_hindi || '',
-            phone: labour.phone || '',
-            role: 'Labour',
-            daily_rate: labour.daily_rate,
-            rate_per_meter: labour.rate_per_meter || 0,
-            status: labour.status,
-            location: labour.location || ''
-        });
         setIsAddModalOpen(true);
     };
 
@@ -160,7 +84,7 @@ const Labourers = () => {
         }
     };
 
-    const handleSave = async () => {
+    const handleSave = async (formData) => {
         try {
             if (selectedLabour) {
                 await updateLabourer.mutateAsync({ id: selectedLabour.id, ...formData });
@@ -169,41 +93,13 @@ const Labourers = () => {
             }
             setIsAddModalOpen(false);
             setSelectedLabour(null);
-            resetForm();
         } catch (err) {
             console.error('Save failed:', err);
         }
     };
 
-    const handleAutoTranslateName = async () => {
-        if (!formData.name || formData.name_hindi) return;
-        try {
-            const hindiName = await translationService.translateText(formData.name, 'hi');
-            if (hindiName) {
-                setFormData(prev => ({ ...prev, name_hindi: hindiName }));
-            }
-        } catch (error) {
-            console.error("Auto-translation failed:", error);
-        }
-    };
-
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            name_hindi: '',
-            phone: '',
-            role: 'Helper',
-            daily_rate: 500,
-            rate_per_meter: 0,
-            status: 'active',
-            location: '',
-            password: undefined
-        });
-    };
-
     const openAddModal = () => {
         setSelectedLabour(null);
-        resetForm();
         setIsAddModalOpen(true);
     };
 
@@ -265,97 +161,13 @@ const Labourers = () => {
                     )}
                 </div>
 
-                {/* Modal */}
-                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                    <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-                        <div className="p-6 border-b border-border bg-white">
-                            <DialogTitle className="text-xl font-bold">{selectedLabour ? 'Edit Profile' : 'New Labourer'}</DialogTitle>
-                            <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">
-                                Register a new worker or update existing staff credentials.
-                            </DialogDescription>
-                        </div>
-                        
-                        <div className="p-6 space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Full Name</Label>
-                                    <Input
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        onBlur={handleAutoTranslateName}
-                                        placeholder="Ramesh Kumar"
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Name (Hindi)</Label>
-                                    <Input
-                                        value={formData.name_hindi}
-                                        onChange={(e) => setFormData({ ...formData, name_hindi: e.target.value })}
-                                        placeholder="रमेश कुमार"
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Phone</Label>
-                                    <Input
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        placeholder="10-digit number"
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Site Location</Label>
-                                    <Input
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder="Sector 62..."
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Daily Wage (₹)</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.daily_rate}
-                                        onChange={(e) => setFormData({ ...formData, daily_rate: Number(e.target.value) })}
-                                        className="h-11 rounded-xl text-sm font-bold border-border"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</Label>
-                                    <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
-                                        <SelectTrigger className="h-11 rounded-xl text-sm border-border">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl">
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-6 bg-muted/20 border-t border-border flex justify-end gap-3">
-                            <Button variant="ghost" className="h-11 px-6 rounded-xl font-bold" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                            <Button 
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white h-11 px-8 rounded-xl font-bold"
-                                onClick={handleSave}
-                                disabled={createLabourer.isPending || updateLabourer.isPending}
-                            >
-                                {selectedLabour ? 'Save Changes' : 'Confirm Registration'}
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <LabourerModal 
+                    isOpen={isAddModalOpen} 
+                    onClose={() => setIsAddModalOpen(false)} 
+                    selectedLabour={selectedLabour} 
+                    onSave={handleSave} 
+                    isSaving={createLabourer.isPending || updateLabourer.isPending} 
+                />
             </div>
         </AppLayout>
     );

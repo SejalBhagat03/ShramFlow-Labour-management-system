@@ -1,6 +1,7 @@
 const supabase = require('../config/supabase');
 const { logAudit } = require('../utils/logger');
 const baseService = require('../services/baseService');
+const equiflowService = require('../services/equiflowService');
 
 exports.getAllWorkEntries = async (req, res, next) => {
     try {
@@ -460,6 +461,31 @@ exports.deleteWorkEntry = async (req, res, next) => {
 
         res.json({ message: 'Work Entry moved to Recycle Bin' });
     } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * getSmartSplit
+ * Provides EquiFlow recommendations for work distribution
+ */
+exports.getSmartSplit = async (req, res, next) => {
+    try {
+        const { labour_ids, total_quantity } = req.body;
+        
+        if (!labour_ids || !total_quantity) {
+            return res.status(400).json({ error: 'Missing labour_ids or total_quantity' });
+        }
+
+        const recommendations = await equiflowService.calculateSmartDistribution(
+            labour_ids, 
+            total_quantity, 
+            req.orgId
+        );
+
+        res.json(recommendations);
+    } catch (error) {
+        console.error('[WorkController] SmartSplit Error:', error);
         next(error);
     }
 };

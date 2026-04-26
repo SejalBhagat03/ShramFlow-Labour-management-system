@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const equiflowService = require('./equiflowService');
 
 /**
  * commandCenterService
@@ -35,12 +36,25 @@ class CommandCenterService {
 
         // 3. Generate Alerts
         const alerts = await this._generateAlerts(projects, todayEntries, orgId);
+        
+        // 3b. Add Burnout Alerts from EquiFlow
+        const burnoutRisks = await equiflowService.getOverworkedAlerts(orgId);
+        burnoutRisks.forEach(risk => {
+            alerts.push({
+                id: `burnout-${risk.labourer_id}`,
+                severity: 'warning',
+                confidence: 0.95,
+                title: 'Burnout Risk',
+                message: `${risk.name} has recorded ${risk.total_work}m in 7 days. Consider reducing their load.`,
+                labourer_id: risk.labourer_id
+            });
+        });
 
         // 4. Project Status
         const projectStatus = this._calculateProjectStatus(projects, todayEntries);
 
         // 5. Labour Stats
-        const labourStats = this._calculateLabourStats(todayEntries);
+        const labourStats = await this._calculateLabourStats(todayEntries, orgId);
 
         // 6. Trends & Summary
         const trends = this._calculateTrends(todayEntries, yesterdayEntries);
@@ -72,6 +86,7 @@ class CommandCenterService {
             alerts: alerts,
             projectStatus: projectStatus,
             labourStats: labourStats,
+            todayEntries: todayEntries,
             financials: { pendingTotal: totalPending },
             activityFeed: activities || [],
             weeklySummary
@@ -227,6 +242,11 @@ class CommandCenterService {
                 name: p.name,
                 progress: p.progress_percent || 0,
                 activeLabour: siteEntries.length,
+                active_labourers: siteEntries.map(e => ({
+                    id: e.labourer?.id,
+                    name: e.labourer?.name,
+                    role: e.labourer?.trade || e.labourer?.role || 'Worker'
+                })),
                 status: p.status,
                 health: p.health_status,
                 efficiency: this._calculateEfficiency(p)
@@ -242,7 +262,7 @@ class CommandCenterService {
         return (project.total_work_done / days).toFixed(1);
     }
 
-    _calculateLabourStats(todayEntries = []) {
+    async _calculateLabourStats(todayEntries = [], orgId) {
         const workers = new Set(todayEntries.map(e => e.labourer_id)).size;
         
         let topEarner = { name: 'None', amount: 0 };
@@ -259,10 +279,36 @@ class CommandCenterService {
             };
         }
 
+        // Fetch top debts (labourers with pending balance)
+        // For efficiency in a real app, this should be a view or cached sum.
+        // For now, we'll fetch labourers and their balances.
+        const { data: labourers } = await supabase
+            .from('labourers')
+            .select('id, name')
+            .eq('organization_id', orgId)
+            .eq('is_deleted', false);
+
+        const topDebts = [];
+        if (labourers) {
+            // We use a simplified calculation for the dashboard
+            const { data: allWork } = await supabase.from('work_entries').select('labourer_id, amount').eq('organization_id', orgId).in('status', ['approved', 'paid']);
+            const { data: allPay } = await supabase.from('payments').select('labourer_id, amount').eq('organization_id', orgId).eq('status', 'paid');
+
+            labourers.forEach(l => {
+                const earned = (allWork || []).filter(w => w.labourer_id === l.id).reduce((s, w) => s + Number(w.amount), 0);
+                const paid = (allPay || []).filter(p => p.labourer_id === l.id).reduce((s, p) => s + Number(p.amount), 0);
+                const balance = earned - paid;
+                if (balance > 0) {
+                    topDebts.push({ name: l.name, balance });
+                }
+            });
+        }
+
         return {
             totalToday: workers,
-            absentEstimated: 0, // Need total labourer pool to calculate
-            topEarner: topEarner
+            absentEstimated: 0, 
+            topEarner: topEarner,
+            topDebts: topDebts.sort((a,b) => b.balance - a.balance).slice(0, 5)
         };
     }
 
@@ -301,10 +347,28 @@ class CommandCenterService {
             .gte('date', startDate)
             .eq('is_deleted', false);
 
-        if (!entries || entries.length === 0) return null;
+        if (!entries || entries.length === 0) return { totalWork: 0, totalPayments: 0, bestProject: 'None', period: 'Last 7 Days', weeklyTrend: [] };
 
         const totalWork = entries.reduce((sum, e) => sum + Number(e.meters || e.work_done || 0), 0);
         const totalPayments = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+        // Daily Trend Aggregation
+        const trendMap = {};
+        for (let i = 0; i < 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+            trendMap[dateStr] = { day: label, work: 0 };
+        }
+
+        entries.forEach(e => {
+            if (trendMap[e.date]) {
+                trendMap[e.date].work += Number(e.meters || e.work_done || 0);
+            }
+        });
+
+        const weeklyTrend = Object.values(trendMap).reverse();
 
         // Find Best Project
         const projectWork = {};
@@ -320,7 +384,8 @@ class CommandCenterService {
             totalPayments,
             bestProject: bestProjectName,
             period: 'Last 7 Days',
-            rawEntries: entries // For CSV export optimization
+            rawEntries: entries,
+            weeklyTrend
         };
     }
 

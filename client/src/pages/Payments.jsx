@@ -1,88 +1,35 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/AppLayout";
 import { usePayments } from "@/hooks/usePayments";
 import { useLabourers } from "@/hooks/useLabourers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import PaymentButton from "@/components/PaymentButton";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
 import {
     Search,
-    Filter,
-    CreditCard,
-    CheckCircle,
-    Clock,
     Download,
-    Banknote,
-    Smartphone,
-    Building2,
-    Loader2,
     MoreVertical,
     Share2,
     Eye,
-    XCircle,
     Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PaymentModal } from "@/components/modals/PaymentModal";
 
 /**
  * Payments page component for managing labourer payments.
  */
-
-const LabourBalanceDisplay = ({ labourId }) => {
-    const { getLabourBalance } = useLabourers();
-    const [balance, setBalance] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchBalance = async () => {
-            setLoading(true);
-            try {
-                const bal = await getLabourBalance(labourId);
-                setBalance(bal);
-            } catch (err) {
-                if (import.meta.env.DEV) console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (labourId) fetchBalance();
-    }, [labourId, getLabourBalance]);
-
-    if (loading) return <span className="text-muted-foreground text-sm">Checking balance...</span>;
-    if (balance === null) return null;
-
-    const isPending = balance >= 0;
-    return (
-        <div className={cn("p-2 rounded border flex justify-between items-center text-sm",
-            isPending ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
-        )}>
-            <span className="text-muted-foreground">{isPending ? "Pending Wage:" : "Advance Taken:"}</span>
-            <span className={cn("font-bold", isPending ? "text-green-600" : "text-red-600")}>
-                ₹{Math.abs(balance).toLocaleString()}
-            </span>
-        </div>
-    );
-};const Payments = () => {
+const Payments = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const { payments, isLoading, totalPaid, totalPending, createManualPayment } = usePayments();
@@ -93,22 +40,11 @@ const LabourBalanceDisplay = ({ labourId }) => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-    const [formData, setFormData] = useState({
-        labourer_id: "",
-        amount: "",
-        method: "cash",
-        payment_type: "advance",
-        deduction_reason: "",
-        transaction_date: new Date().toISOString().split("T")[0],
-    });
-
     const handleSaveSuccess = () => {
         setIsAddModalOpen(false);
-        resetForm();
     };
 
-    const handleManualSave = async () => {
-        if (!formData.labourer_id || !formData.amount) return;
+    const handleManualSave = async (formData) => {
         await createManualPayment.mutateAsync(formData);
         handleSaveSuccess();
     };
@@ -129,17 +65,6 @@ const LabourBalanceDisplay = ({ labourId }) => {
             day: '2-digit',
             month: 'short',
             year: 'numeric'
-        });
-    };
-
-    const resetForm = () => {
-        setFormData({
-            labourer_id: "",
-            amount: "",
-            method: "cash",
-            payment_type: "advance",
-            deduction_reason: "",
-            transaction_date: new Date().toISOString().split("T")[0],
         });
     };
 
@@ -266,7 +191,7 @@ const LabourBalanceDisplay = ({ labourId }) => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="capitalize text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-                                                    {payment.method.replace('_', ' ')}
+                                                    {payment.method?.replace('_', ' ') || 'N/A'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 font-bold text-foreground">
@@ -308,93 +233,22 @@ const LabourBalanceDisplay = ({ labourId }) => {
                 </div>
 
                 {/* Modals */}
-                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                    <DialogContent className="sm:max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-                        <div className="p-6 border-b border-border bg-white">
-                            <DialogTitle className="text-xl font-bold">New Payment</DialogTitle>
-                            <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">Record a wage or advance payment.</DialogDescription>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="grid gap-2">
-                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Select Labourer</Label>
-                                <Select value={formData.labourer_id} onValueChange={(value) => setFormData({ ...formData, labourer_id: value })}>
-                                    <SelectTrigger className="h-11 rounded-xl text-sm border-border">
-                                        <SelectValue placeholder="Choose labourer" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        {labourers?.filter(l => !l.status || l.status === "active").map((labour) => (
-                                            <SelectItem key={labour.id} value={labour.id}>
-                                                {labour.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Amount (₹)</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        value={formData.amount}
-                                        className="h-11 rounded-xl text-sm font-bold border-border"
-                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Method</Label>
-                                    <Select value={formData.method} onValueChange={(value) => setFormData({ ...formData, method: value })}>
-                                        <SelectTrigger className="h-11 rounded-xl text-sm border-border">
-                                            <SelectValue placeholder="Select" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl">
-                                            <SelectItem value="cash">Cash</SelectItem>
-                                            <SelectItem value="manual_upi">UPI</SelectItem>
-                                            <SelectItem value="bank">Bank</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-6 bg-muted/20 border-t border-border flex gap-3">
-                            <Button variant="ghost" className="flex-1 h-11 rounded-xl font-bold" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                            <Button className="flex-1 h-11 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleManualSave}>Save Payment</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <PaymentModal 
+                    isOpen={isAddModalOpen} 
+                    onClose={() => setIsAddModalOpen(false)} 
+                    labourers={labourers} 
+                    onSave={handleManualSave}
+                    isSaving={createManualPayment.isPending}
+                />
 
-                {/* Details Dialog */}
-                <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-                    <DialogContent className="sm:max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-                        <div className="p-8 bg-emerald-600 text-white text-center">
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-2">Transaction Amount</p>
-                            <h2 className="text-4xl font-black">₹{Number(selectedPayment?.amount).toLocaleString()}</h2>
-                        </div>
-                        <div className="p-8 space-y-6 bg-white">
-                            <div className="grid grid-cols-2 gap-y-6 text-sm">
-                                <div>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Labourer</p>
-                                    <p className="font-bold text-foreground">{selectedPayment?.labourer?.name}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Date</p>
-                                    <p className="font-bold text-foreground">{formatDate(selectedPayment?.transaction_date)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Method</p>
-                                    <p className="font-bold text-foreground capitalize">{selectedPayment?.method.replace('_', ' ')}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Status</p>
-                                    <p className="font-bold text-emerald-600 capitalize">{selectedPayment?.status}</p>
-                                </div>
-                            </div>
-                            <Button variant="outline" className="w-full h-12 rounded-xl font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => handleShare(selectedPayment)}>
-                                <Share2 className="h-4 w-4 mr-2" /> Share Receipt
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <PaymentModal 
+                    isOpen={isDetailsModalOpen} 
+                    onClose={() => setIsDetailsModalOpen(false)} 
+                    mode="view"
+                    selectedPayment={selectedPayment}
+                    onShare={handleShare}
+                    formatDate={formatDate}
+                />
             </div>
         </AppLayout>
     );

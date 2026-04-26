@@ -38,10 +38,15 @@ import {
     ChevronRight,
     TrendingUp,
     ClipboardCheck,
-    Camera
+    Camera,
+    Briefcase,
+    IndianRupee
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, isSameDay } from "date-fns";
+
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 const DailyLogs = () => {
     const { t, i18n } = useTranslation();
@@ -72,6 +77,28 @@ const DailyLogs = () => {
         image_url: "",
         log_type: "general",
     });
+
+    // 3-in-1 Connection: Fetch Work Entries for this day to show a summary
+    const { data: workEntries = [], isLoading: isLoadingEntries } = useQuery({
+        queryKey: ['work_entries_summary', selectedDate.toISOString().split('T')[0]],
+        queryFn: async () => {
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            const { data, error } = await supabase
+                .from('work_entries')
+                .select('*, labourers(name), projects(name)')
+                .eq('date', dateStr)
+                .neq('status', 'rejected');
+            if (error) throw error;
+            return data;
+        }
+    });
+
+    const dailySummary = {
+        totalLabourers: new Set(workEntries.map(e => e.labourer_id)).size,
+        totalMeters: workEntries.reduce((sum, e) => sum + (Number(e.meters) || 0), 0),
+        totalAmount: workEntries.reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
+        activeProjects: new Set(workEntries.map(e => e.projects?.name).filter(Boolean)).size
+    };
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
@@ -270,6 +297,41 @@ const DailyLogs = () => {
                         </Button>
                     </div>
 
+                    {/* Master Summary Card (The 3-in-1 Integration) */}
+                    {(workEntries.length > 0) && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-emerald-600 p-4 rounded-2xl text-white shadow-lg shadow-emerald-600/20 relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -mr-8 -mt-8" />
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Active Sites</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-2xl font-black">{dailySummary.activeProjects}</p>
+                                    <Briefcase className="h-4 w-4 opacity-50" />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-border shadow-sm group hover:border-emerald-200 transition-colors">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Workforce</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-2xl font-black text-slate-900">{dailySummary.totalLabourers}</p>
+                                    <Users className="h-4 w-4 text-emerald-500 opacity-50" />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-border shadow-sm group hover:border-emerald-200 transition-colors">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Productivity</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-2xl font-black text-slate-900">{dailySummary.totalMeters}<span className="text-xs font-bold ml-1 text-slate-400">m</span></p>
+                                    <TrendingUp className="h-4 w-4 text-emerald-500 opacity-50" />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-border shadow-sm group hover:border-emerald-200 transition-colors">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Daily Cost</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-2xl font-black text-slate-900">₹{dailySummary.totalAmount.toLocaleString()}</p>
+                                    <IndianRupee className="h-4 w-4 text-emerald-500 opacity-50" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Logs Grid */}
                     {isLoading ? (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -342,41 +404,56 @@ const DailyLogs = () => {
 
                     {/* Add Entry Modal */}
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader className="p-4 md:px-6 md:pt-6 border-b">
-                                <DialogTitle>{t("addDailyLog")}</DialogTitle>
-                                <DialogDescription className="text-xs">
-                                    {t("addDailyLogDesc")} {format(selectedDate, "dd MMM yyyy")}
-                                </DialogDescription>
-                            </DialogHeader>
+                        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl rounded-3xl max-h-[95vh] flex flex-col gap-0">
+                            {/* Premium Header Banner */}
+                            <div className="bg-emerald-600 px-8 py-8 text-white relative overflow-hidden flex-shrink-0">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                                <div className="relative z-10 flex items-center gap-4">
+                                    <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                                        <Plus className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <DialogTitle className="text-2xl font-black tracking-tight">{t("addDailyLog")}</DialogTitle>
+                                        <DialogDescription className="text-emerald-100 font-medium text-sm mt-0.5">
+                                            {t("addDailyLogDesc")} {format(selectedDate, "dd MMM yyyy")}
+                                        </DialogDescription>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <div className="overflow-y-auto max-h-[60vh] p-4 md:p-6 space-y-4">
+                            <div className="p-8 space-y-6 bg-white flex-1 overflow-y-auto custom-scrollbar min-h-0">
                                 {/* Image Upload */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t("photoOptional")}</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("photoOptional")}</Label>
                                     <div
                                         className={cn(
-                                            "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors",
-                                            "hover:border-primary hover:bg-primary/5",
-                                            previewImage && "border-primary",
+                                            "border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all",
+                                            "hover:border-emerald-400 hover:bg-emerald-50/50",
+                                            previewImage ? "border-emerald-500 bg-emerald-50/30" : "border-slate-100 bg-slate-50",
                                         )}
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         {isUploading ? (
                                             <div className="flex flex-col items-center gap-2">
-                                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                                <p className="text-xs text-muted-foreground">{t("uploading")}</p>
+                                                <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                                                <p className="text-xs font-bold text-slate-500">{t("uploading")}</p>
                                             </div>
                                         ) : previewImage ? (
-                                            <div className="relative">
-                                                <img src={previewImage} alt="Preview" className="max-h-32 mx-auto rounded-lg object-cover" />
-                                                <p className="text-[10px] text-muted-foreground mt-2">{t("clickToChange")}</p>
+                                            <div className="relative group">
+                                                <img src={previewImage} alt="Preview" className="max-h-40 mx-auto rounded-xl shadow-lg transition-transform group-hover:scale-[1.02]" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                                    <Camera className="h-8 w-8 text-white" />
+                                                </div>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <Upload className="h-6 w-6 text-muted-foreground" />
-                                                <p className="text-xs text-muted-foreground font-medium">{t("clickToUpload")}</p>
-                                                <p className="text-[10px] text-muted-foreground">{t("photoTypes")}</p>
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100">
+                                                    <Upload className="h-6 w-6 text-emerald-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-900">{t("clickToUpload")}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">{t("photoTypes")}</p>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -389,67 +466,69 @@ const DailyLogs = () => {
                                     />
                                 </div>
 
-                                {/* Log Type */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t("type")}</Label>
-                                    <Select
-                                        value={formData.log_type}
-                                        onValueChange={(value) => setFormData({ ...formData, log_type: value })}
-                                    >
-                                        <SelectTrigger className="h-9 text-sm">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {logTypes.map((type) => (
-                                                <SelectItem key={type.value} value={type.value}>
-                                                    <div className="flex items-center gap-2">
-                                                        <type.icon className="h-4 w-4" />
-                                                        {type.label}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <div className="grid grid-cols-1 gap-6">
+                                    {/* Log Type */}
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("type")}</Label>
+                                        <Select
+                                            value={formData.log_type}
+                                            onValueChange={(value) => setFormData({ ...formData, log_type: value })}
+                                        >
+                                            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none focus:ring-emerald-500 font-bold text-slate-900 shadow-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-xl">
+                                                {logTypes.map((type) => (
+                                                    <SelectItem key={type.value} value={type.value} className="rounded-lg font-bold">
+                                                        <div className="flex items-center gap-2">
+                                                            <type.icon className="h-4 w-4 text-emerald-500" />
+                                                            {type.label}
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                                {/* Title */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t("title")} *</Label>
-                                    <Input
-                                        placeholder={t("titlePlaceholder")}
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        className="h-9 text-sm font-semibold"
-                                    />
-                                </div>
+                                    {/* Title */}
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("title")} *</Label>
+                                        <Input
+                                            placeholder={t("titlePlaceholder")}
+                                            value={formData.title}
+                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                            className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-bold text-slate-900 shadow-sm"
+                                        />
+                                    </div>
 
-                                {/* Description */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold">{t("notesOptional")}</Label>
-                                    <Textarea
-                                        placeholder={t("notesPlaceholder")}
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="min-h-[80px] text-sm resize-none"
-                                    />
+                                    {/* Description */}
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t("notesOptional")}</Label>
+                                        <Textarea
+                                            placeholder={t("notesPlaceholder")}
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            className="min-h-[100px] rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-medium text-slate-700 shadow-sm resize-none"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6 flex justify-end gap-3 z-10">
-                                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)}>
+                            <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-shrink-0 z-20">
+                                <Button 
+                                    variant="ghost" 
+                                    className="h-12 px-6 rounded-xl font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest text-[10px]" 
+                                    onClick={() => setIsAddModalOpen(false)}
+                                >
                                     {t("cancel")}
                                 </Button>
                                 <Button
-                                    size="sm"
-                                    className="gradient-primary"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 px-10 rounded-2xl font-black shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-sm tracking-tight"
                                     onClick={handleSave}
                                     disabled={!formData.title || createLog.isPending || isUploading}
                                 >
                                     {createLog.isPending ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            {t("saving")}
-                                        </>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
                                     ) : (
                                         t("saveEntry")
                                     )}

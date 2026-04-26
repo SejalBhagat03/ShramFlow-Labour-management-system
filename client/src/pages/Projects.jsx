@@ -33,7 +33,8 @@ import {
     Clock,
     CheckCircle2,
     Target,
-    Zap
+    Zap,
+    Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProjects } from '@/hooks/useProjects';
@@ -187,115 +188,154 @@ const Projects = () => {
 
                 {/* Modal */}
                 <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                    <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-                        <div className="p-6 border-b border-border bg-white">
-                            <DialogTitle className="text-xl font-bold">New Project</DialogTitle>
-                            <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">
-                                Define a new work site and its operational parameters.
-                            </DialogDescription>
+                    <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-none shadow-2xl rounded-3xl max-h-[90vh] flex flex-col">
+                        {/* Premium Header Banner */}
+                        <div className="bg-emerald-600 px-8 py-10 text-white relative overflow-hidden flex-shrink-0">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                            <div className="relative z-10 flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                                    <Briefcase className="h-6 w-6 text-white" />
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-2xl font-black tracking-tight">Initialize New Project</DialogTitle>
+                                    <DialogDescription className="text-emerald-100 font-medium text-sm mt-0.5">
+                                        Define site logistics, budget constraints, and delivery targets.
+                                    </DialogDescription>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                        <div className="p-8 space-y-8 bg-white flex-grow overflow-y-auto custom-scrollbar">
+                            {/* Project Identity */}
                             <div className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Project Name</Label>
-                                    <Input 
-                                        placeholder="Skyline Towers Block A" 
-                                        value={formData.name} 
-                                        onChange={e => setFormData({...formData, name: e.target.value})} 
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Zap className="h-4 w-4 text-emerald-500" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Project Identity</h3>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Description</Label>
-                                    <Textarea 
-                                        placeholder="Brief overview of the project scope..." 
-                                        value={formData.description} 
-                                        onChange={e => setFormData({...formData, description: e.target.value})} 
-                                        className="rounded-xl text-sm border-border min-h-[80px]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Budget (₹)</Label>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        value={formData.budget} 
-                                        onChange={e => setFormData({...formData, budget: e.target.value})} 
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Location</Label>
-                                    <Input 
-                                        placeholder="City / Area" 
-                                        value={formData.site_location} 
-                                        onChange={e => setFormData({...formData, site_location: e.target.value})} 
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Project Designation</Label>
+                                        <Input 
+                                            placeholder="e.g. Skyline Towers Block A" 
+                                            value={formData.name} 
+                                            onChange={e => setFormData({...formData, name: e.target.value})} 
+                                            className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-bold text-slate-900"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Operational Scope</Label>
+                                        <Textarea 
+                                            placeholder="Brief overview of the project scope..." 
+                                            value={formData.description} 
+                                            onChange={e => setFormData({...formData, description: e.target.value})} 
+                                            className="rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-medium text-slate-700 min-h-[100px]"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Work Type</Label>
-                                    <Select value={formData.work_type} onValueChange={v => setFormData({...formData, work_type: v})}>
-                                        <SelectTrigger className="h-11 rounded-xl text-sm border-border">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl">
-                                            <SelectItem value="Solar Installation">Solar Installation</SelectItem>
-                                            <SelectItem value="Wiring">Wiring</SelectItem>
-                                            <SelectItem value="Digging">Digging</SelectItem>
-                                            <SelectItem value="Pole Installation">Pole Installation</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                            {/* Logistics & Budget */}
+                            <div className="space-y-4 pt-4 border-t border-slate-50">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <MapPin className="h-4 w-4 text-emerald-500" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Logistics & Budget</h3>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Target ({formData.rate_type === 'per_meter' ? 'm' : 'days'})</Label>
-                                    <Input 
-                                        type="number"
-                                        placeholder="0" 
-                                        value={formData.total_work_target} 
-                                        onChange={e => setFormData({...formData, total_work_target: e.target.value})} 
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Allocation Budget (₹)</Label>
+                                        <Input 
+                                            type="number" 
+                                            placeholder="0" 
+                                            value={formData.budget} 
+                                            onChange={e => setFormData({...formData, budget: e.target.value})} 
+                                            className="h-12 rounded-xl bg-emerald-50/50 border-none focus-visible:ring-emerald-500 transition-all font-black text-emerald-900 text-lg"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Site Location</Label>
+                                        <Input 
+                                            placeholder="City / Area" 
+                                            value={formData.site_location} 
+                                            onChange={e => setFormData({...formData, site_location: e.target.value})} 
+                                            className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-bold text-slate-900"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Vertical Sector</Label>
+                                        <Select value={formData.work_type} onValueChange={v => setFormData({...formData, work_type: v})}>
+                                            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none focus:ring-emerald-500 font-bold text-slate-900">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-xl font-bold">
+                                                <SelectItem value="Solar Installation">Solar Installation</SelectItem>
+                                                <SelectItem value="Wiring">Wiring</SelectItem>
+                                                <SelectItem value="Digging">Digging</SelectItem>
+                                                <SelectItem value="Pole Installation">Pole Installation</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Production Target</Label>
+                                        <Input 
+                                            type="number"
+                                            placeholder="0" 
+                                            value={formData.total_work_target} 
+                                            onChange={e => setFormData({...formData, total_work_target: e.target.value})} 
+                                            className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-bold text-slate-900"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Start Date</Label>
-                                    <Input 
-                                        type="date" 
-                                        value={formData.start_date} 
-                                        onChange={e => setFormData({...formData, start_date: e.target.value})} 
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
+                            {/* Chronology */}
+                            <div className="space-y-4 pt-4 border-t border-slate-50 pb-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Calendar className="h-4 w-4 text-emerald-500" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Timeline Chronology</h3>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">End Date</Label>
-                                    <Input 
-                                        type="date" 
-                                        value={formData.end_date} 
-                                        onChange={e => setFormData({...formData, end_date: e.target.value})} 
-                                        className="h-11 rounded-xl text-sm border-border"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Kick-off Date</Label>
+                                        <Input 
+                                            type="date" 
+                                            value={formData.start_date} 
+                                            onChange={e => setFormData({...formData, start_date: e.target.value})} 
+                                            className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-bold text-slate-900"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Estimated Completion</Label>
+                                        <Input 
+                                            type="date" 
+                                            value={formData.end_date} 
+                                            onChange={e => setFormData({...formData, end_date: e.target.value})} 
+                                            className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-emerald-500 transition-all font-bold text-slate-900"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 bg-muted/20 border-t border-border flex justify-end gap-3">
-                            <Button variant="ghost" className="h-11 px-6 rounded-xl font-bold" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                        <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between flex-shrink-0">
+                            <Button 
+                                variant="ghost" 
+                                className="h-12 px-6 rounded-xl font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest text-[10px]" 
+                                onClick={() => setIsAddModalOpen(false)}
+                            >
+                                Cancel Setup
+                            </Button>
                             <Button
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white h-11 px-8 rounded-xl font-bold"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 px-10 rounded-2xl font-black shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-sm tracking-tight"
                                 onClick={handleSave} 
                                 disabled={!formData.name || createProject.isPending}
                             >
-                                {createProject.isPending ? "Creating..." : "Save Project"}
+                                {createProject.isPending ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    "Establish Project"
+                                )}
                             </Button>
                         </div>
                     </DialogContent>

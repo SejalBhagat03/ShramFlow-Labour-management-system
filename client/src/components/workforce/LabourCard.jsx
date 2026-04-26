@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { generateWhatsAppLink, whatsappTemplates } from '@/utils/whatsapp';
+import { TrustBadge } from './TrustBadge';
 
 const AVATAR_COLORS = [
     { bg: 'bg-indigo-100/50', text: 'text-indigo-600' },
@@ -84,9 +85,12 @@ export const LabourCard = ({ labour, lang, onEdit, onDelete }) => {
 
             {/* Identity Section */}
             <div className="mb-4">
-                <h3 className="font-bold text-foreground text-lg tracking-tight truncate">
-                    {lang === 'hi' && labour.name_hindi ? labour.name_hindi : labour.name}
-                </h3>
+                <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-bold text-foreground text-lg tracking-tight truncate">
+                        {lang === 'hi' && labour.name_hindi ? labour.name_hindi : labour.name}
+                    </h3>
+                    <TrustBadge score={labour.trust_score || 0} />
+                </div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                     Labourer • {labour.phone || 'No Contact'}
                 </p>

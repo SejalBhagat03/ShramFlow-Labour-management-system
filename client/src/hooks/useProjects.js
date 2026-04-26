@@ -32,7 +32,7 @@ export const useProjects = () => {
                 throw err;
             }
         },
-        enabled: !!user && !!user.organization_id
+        enabled: !!user
     });
 
     const createProject = useMutation({

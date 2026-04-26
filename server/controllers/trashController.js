@@ -29,7 +29,6 @@ exports.restoreItem = async (req, res, next) => {
         // 1. Get the trash record
         const { data: trashRecord, error: fetchError } = await supabase
             .from('trash')
-            .from('trash')
             .select('*')
             .eq('id', id)
             .eq('organization_id', req.orgId)
@@ -47,7 +46,7 @@ exports.restoreItem = async (req, res, next) => {
             'WorkEntry': 'work_entries',
             'Payment': 'payments',
             'Project': 'projects',
-            'WorkDispute': 'work_disputes'
+            'WorkDispute': 'work_acknowledgments'
         };
 
         const tableName = tableMap[entity_type];
@@ -104,7 +103,7 @@ exports.permanentDelete = async (req, res, next) => {
             'WorkEntry': 'work_entries',
             'Payment': 'payments',
             'Project': 'projects',
-            'WorkDispute': 'work_disputes'
+            'WorkDispute': 'work_acknowledgments'
         };
 
         const tableName = tableMap[entity_type];

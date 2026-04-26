@@ -29,8 +29,6 @@ export const usePayments = () => {
                   razorpay_order_id,
                   razorpay_payment_id,
                   created_at,
-                  /* payment_type,
-                  deduction_reason, */
                   labourer:labourers(id, name, name_hindi)
                 `);
 

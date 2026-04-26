@@ -35,7 +35,8 @@ import {
     Target,
     CheckCircle2,
     CreditCard,
-    BarChart3
+    BarChart3,
+    Loader2
 } from 'lucide-react';
 import { workService } from '@/services/workService';
 import { supabase } from '@/lib/supabase';
@@ -72,7 +73,30 @@ const CommandCenter = () => {
         };
         triggerSync();
         window.addEventListener('online', triggerSync);
-        return () => window.removeEventListener('online', triggerSync);
+
+        // Real-time Activity & Alert Listener
+        const channel = supabase
+            .channel('dashboard-realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'activities' },
+                () => {
+                    refetch();
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'work_entries' },
+                () => {
+                    refetch();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            window.removeEventListener('online', triggerSync);
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     if (isLoading) {
@@ -236,29 +260,39 @@ const CommandCenter = () => {
                             <AnimatePresence>
                                 {suggestedAction && (
                                     <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
+                                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
                                         className={cn(
-                                            "p-6 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-6",
-                                            suggestedAction.type === 'critical' ? "bg-red-50 border-red-100" : "bg-emerald-50 border-emerald-100"
+                                            "p-6 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm",
+                                            suggestedAction.type === 'critical' ? "bg-red-50 border-red-100" : 
+                                            suggestedAction.type === 'warning' ? "bg-amber-50 border-amber-100" :
+                                            "bg-emerald-50 border-emerald-100"
                                         )}
                                     >
                                         <div className="flex items-start gap-4">
                                             <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                                                suggestedAction.type === 'critical' ? "bg-red-600 text-white" : "bg-emerald-600 text-white"
+                                                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+                                                suggestedAction.type === 'critical' ? "bg-red-600 text-white" : 
+                                                suggestedAction.type === 'warning' ? "bg-amber-500 text-white" :
+                                                "bg-emerald-600 text-white"
                                             )}>
                                                 <Sparkles className="h-6 w-6" strokeWidth={2.5} />
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AI Insight</p>
-                                                <h4 className="text-base font-bold text-foreground leading-tight">{suggestedAction.message}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">AI Smart Suggestion</p>
+                                                    <Badge variant="outline" className="text-[8px] h-4 bg-white/50 border-none">BETA</Badge>
+                                                </div>
+                                                <h4 className="text-base font-bold text-foreground leading-tight tracking-tight">{suggestedAction.message}</h4>
                                             </div>
                                         </div>
                                         <Button 
                                             className={cn(
-                                                "h-12 px-8 rounded-xl font-bold text-white shrink-0",
-                                                suggestedAction.type === 'critical' ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                                                "h-12 px-8 rounded-xl font-bold text-white shrink-0 shadow-lg active:scale-95 transition-transform",
+                                                suggestedAction.type === 'critical' ? "bg-red-600 hover:bg-red-700" : 
+                                                suggestedAction.type === 'warning' ? "bg-amber-500 hover:bg-amber-600" :
+                                                "bg-emerald-600 hover:bg-emerald-700"
                                             )}
                                             onClick={() => suggestedAction.projectId ? navigate(`/projects/${suggestedAction.projectId}`) : null}
                                         >

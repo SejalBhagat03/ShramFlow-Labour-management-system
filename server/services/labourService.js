@@ -74,6 +74,22 @@ class LabourService {
             payments: payments
         };
     }
+
+    /**
+     * Get only the current balance for a labourer
+     * @param {string} labourId 
+     * @param {string} orgId 
+     * @returns {Promise<number>}
+     */
+    async getLabourBalance(labourId, orgId) {
+        try {
+            const ledger = await this.getLabourLedger(labourId, orgId);
+            return ledger.balance;
+        } catch (error) {
+            console.error('[LabourService.getLabourBalance] Error:', error);
+            return 0;
+        }
+    }
 }
 
 module.exports = new LabourService();

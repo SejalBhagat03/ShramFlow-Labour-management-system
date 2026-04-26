@@ -22,15 +22,65 @@ exports.getAllLabourers = async (req, res, next) => {
     }
 };
 
+exports.getLabourerById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from('labourers')
+            .select('*')
+            .eq('id', id)
+            .eq('organization_id', req.orgId)
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.getLabourBalance = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const balance = await labourService.getLabourBalance(id, req.orgId);
+        res.json(balance);
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.getLabourStats = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase.rpc('get_labour_stats', { 
+            labour_uuid: id 
+        });
+
+        if (error) throw error;
+        res.json(data || { total_earned: 0, total_paid: 0 });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.createLabourer = async (req, res, next) => {
     try {
         const { data, error } = await supabase
             .from('labourers')
-            .insert({ ...req.body, organization_id: req.orgId })
+            .insert({ 
+                ...req.body, 
+                organization_id: req.orgId,
+                supervisor_id: req.user.id,
+                daily_rate: parseFloat(req.body.daily_rate || 0),
+                rate_per_meter: parseFloat(req.body.rate_per_meter || 0)
+            })
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Create Labourer DB Error]:', error);
+            throw error;
+        }
 
         // Log audit
         await logAudit({
@@ -42,6 +92,34 @@ exports.createLabourer = async (req, res, next) => {
         });
 
         res.status(201).json(data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.updateLabourer = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from('labourers')
+            .update({ ...req.body })
+            .eq('id', id)
+            .eq('organization_id', req.orgId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Log audit
+        await logAudit({
+            req,
+            action: 'UPDATE',
+            entityType: 'Labourer',
+            entityId: id,
+            newValue: data
+        });
+
+        res.json(data);
     } catch (error) {
         next(error);
     }

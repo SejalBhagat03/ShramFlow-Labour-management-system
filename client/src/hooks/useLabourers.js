@@ -208,6 +208,30 @@ export const useLabourers = () => {
         }
     });
 
+    const getLabourBalance = (id) => useQuery({
+        queryKey: ['labour_balance', id],
+        queryFn: async () => {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/balance`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            if (!response.ok) return 0;
+            return await response.json();
+        },
+        enabled: !!id && !!session
+    });
+
+    const getLabourStats = (id) => useQuery({
+        queryKey: ['labour_stats', id],
+        queryFn: async () => {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/stats`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            if (!response.ok) return { total_earned: 0, total_paid: 0 };
+            return await response.json();
+        },
+        enabled: !!id && !!session
+    });
+
     return {
         labourers,
         isLoading,
@@ -215,19 +239,7 @@ export const useLabourers = () => {
         createLabourer,
         updateLabourer,
         deleteLabourer,
-        getLabourBalance: async (id) => {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/balance`, {
-                headers: { 'Authorization': `Bearer ${session?.access_token}` }
-            });
-            if (!response.ok) return 0;
-            return await response.json();
-        },
-        getLabourStats: async (id) => {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/stats`, {
-                headers: { 'Authorization': `Bearer ${session?.access_token}` }
-            });
-            if (!response.ok) return { total_earned: 0, total_paid: 0 };
-            return await response.json();
-        }
+        getLabourBalance,
+        getLabourStats
     };
 };

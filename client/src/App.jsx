@@ -16,8 +16,7 @@ import { Button } from "@/components/ui/button";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
 
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+const Login = React.lazy(() => import("./pages/Login"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const RecycleBin = React.lazy(() => import("./pages/RecycleBin"));
@@ -112,7 +111,7 @@ const LoadingScreen = () => {
 const DevPortIndicator = () => {
     if (import.meta.env.PROD) return null;
     return (
-        <div className="fixed bottom-4 left-4 z-[100] bg-black/80 text-white text-[10px] px-2 py-1 rounded-full pointer-events-none opacity-50">
+        <div className="fixed bottom-4 left-4 z-[100] bg-black/60 text-white text-[8px] sm:text-[10px] px-2 py-0.5 sm:py-1 rounded-full pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
             Dev Server: Port 8081
         </div>
     );

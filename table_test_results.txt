@@ -1,5 +1,0 @@
-Table: work_acknowledgments -> Status: 404 Not Found
-Table: work_disputes -> Status: 404 Not Found
-Table: work_claims -> Status: 404 Not Found
-Table: daily_work_register -> Status: 404 Not Found
-Table: work_entries -> Status: 200 OK

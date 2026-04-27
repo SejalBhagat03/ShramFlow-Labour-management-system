@@ -140,7 +140,7 @@ export const WorkEntryModal = ({
         <>
             <Dialog open={isOpen} onOpenChange={onClose}>
                 <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-3xl max-h-[90vh] flex flex-col">
-                    <div className="bg-emerald-600 px-8 py-10 text-white relative overflow-hidden flex-shrink-0">
+                    <div className="bg-emerald-600 px-8 py-6 text-white relative overflow-hidden flex-shrink-0">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
                         <div className="relative z-10 flex items-center gap-4">
                             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">

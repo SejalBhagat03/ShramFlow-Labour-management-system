@@ -31,7 +31,7 @@ const Reports = () => {
     const { t } = useTranslation();
     const [dateRange, setDateRange] = useState("week");
 
-    const { stats, isLoading } = useDashboardStats();
+    const { stats, isLoading } = useDashboardStats(dateRange);
 
     // Use data from stats or empty defaults
     const productivityData = stats.productivityData || [];
@@ -56,8 +56,8 @@ const Reports = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
-                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+            <div className="space-y-3 md:space-y-6">
+                <div className="relative pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -81,6 +81,7 @@ const Reports = () => {
                                     <SelectItem value="week">This Week</SelectItem>
                                     <SelectItem value="month">This Month</SelectItem>
                                     <SelectItem value="quarter">This Quarter</SelectItem>
+                                    <SelectItem value="all">All Time</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Button variant="outline" size="sm" className="h-9 px-3 rounded-xl bg-background/50 border backdrop-blur-sm text-xs font-semibold">

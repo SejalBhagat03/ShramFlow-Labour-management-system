@@ -55,7 +55,7 @@ export const offlineSyncService = {
         let syncedCount = 0;
         let remainingQueue = [];
 
-        console.log(`[OfflineSync] Attempting to sync ${queue.length} items...`);
+
 
         for (const entry of queue) {
             try {
@@ -96,7 +96,6 @@ export const offlineSyncService = {
 
     setupListeners() {
         window.addEventListener('online', () => {
-            console.log("Back online. Syncing PWA queue...");
             this.syncQueue();
         });
     }

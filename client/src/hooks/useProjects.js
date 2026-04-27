@@ -25,7 +25,6 @@ export const useProjects = () => {
                 if (!navigator.onLine) {
                     const cached = await offlineSyncService.getCachedMetadata('projects');
                     if (cached) {
-                        console.log("Using cached projects (offline)");
                         return cached;
                     }
                 }

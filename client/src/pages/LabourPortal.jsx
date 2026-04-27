@@ -267,7 +267,7 @@ export default function LabourPortal() {
 
             {/* Main Content */}
             <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
-                <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
+                <div className="p-4 md:p-8 space-y-8">
                     {/* Header */}
                     <div>
                         <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">

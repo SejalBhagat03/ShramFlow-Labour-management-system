@@ -53,8 +53,8 @@ const LabourDashboardV2 = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-4 md:space-y-6">
-                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 -mt-6 lg:-mt-10 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
+            <div className="space-y-4 md:space-y-6">
+                <div className="relative -mt-6 lg:-mt-10 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />

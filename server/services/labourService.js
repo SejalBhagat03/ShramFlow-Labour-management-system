@@ -6,7 +6,7 @@ const supabase = require('../config/supabase');
  */
 class LabourService {
     /**
-     * Get a comprehensive ledger for a specific labourer
+     * Get a comprehensive ledger for a specific labourer using the Transaction Engine
      * @param {string} labourId 
      * @param {string} orgId 
      * @returns {Promise<Object>}
@@ -22,44 +22,47 @@ class LabourService {
 
         if (labourError) throw labourError;
 
-        // 2. Fetch all approved/paid work entries
-        const { data: workEntries, error: workError } = await supabase
-            .from('work_entries')
+        // 2. Fetch all transactions from the unified ledger
+        const { data: transactions, error: ledgerError } = await supabase
+            .from('labour_ledger')
             .select('*')
             .eq('labourer_id', labourId)
-            .eq('organization_id', orgId)
-            .in('status', ['approved', 'paid'])
-            .order('date', { ascending: false });
+            .order('created_at', { ascending: true }); // ASC for correct running balance calculation
 
-        if (workError) throw workError;
+        if (ledgerError) throw ledgerError;
 
-        // 3. Fetch all payment records
-        const { data: payments, error: paymentError } = await supabase
-            .from('payments')
-            .select('*')
-            .eq('labourer_id', labourId)
-            .eq('organization_id', orgId)
-            .eq('status', 'paid')
-            .order('transaction_date', { ascending: false });
-
-        if (paymentError) throw paymentError;
-
-        // 4. Calculate summaries
-        const totalEarned = workEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
-        
+        // 3. Calculate running balance and summaries
+        let runningBalance = 0;
+        let totalEarned = 0;
         let totalPaid = 0;
+        let totalAdvances = 0;
         let totalDeductions = 0;
 
-        payments.forEach(payment => {
-            if (payment.payment_type === 'deduction') {
-                totalDeductions += (Number(payment.amount) || 0);
+        const ledgerEntries = (transactions || []).map(tx => {
+            const amount = Number(tx.amount || 0);
+            
+            if (tx.transaction_type === 'CREDIT') {
+                runningBalance += amount;
+                totalEarned += amount;
             } else {
-                totalPaid += (Number(payment.amount) || 0);
+                runningBalance -= amount;
+                if (tx.category === 'advance') {
+                    totalAdvances += amount;
+                } else if (tx.category === 'deduction') {
+                    totalDeductions += amount;
+                } else {
+                    totalPaid += amount;
+                }
             }
+
+            return {
+                ...tx,
+                running_balance: runningBalance
+            };
         });
 
-        // Balance = Earned - Paid - Deducted
-        const balance = totalEarned - totalPaid - totalDeductions;
+        // 4. Sort by most recent for UI presentation
+        ledgerEntries.reverse();
 
         return {
             labourId,
@@ -68,26 +71,32 @@ class LabourService {
             phone: labour.phone,
             totalEarned,
             totalPaid,
+            totalAdvances,
             totalDeductions,
-            balance,
-            entries: workEntries,
-            payments: payments
+            balance: runningBalance,
+            transactions: ledgerEntries
         };
     }
 
     /**
-     * Get only the current balance for a labourer
+     * Get only the current balance for a labourer using optimized RPC
      * @param {string} labourId 
      * @param {string} orgId 
      * @returns {Promise<number>}
      */
     async getLabourBalance(labourId, orgId) {
         try {
-            const ledger = await this.getLabourLedger(labourId, orgId);
-            return ledger.balance;
+            const { data, error } = await supabase.rpc('get_labour_balance', { 
+                labour_uuid: labourId 
+            });
+            
+            if (error) throw error;
+            return Number(data || 0);
         } catch (error) {
             console.error('[LabourService.getLabourBalance] Error:', error);
-            return 0;
+            // Fallback to manual calculation if RPC fails
+            const ledger = await this.getLabourLedger(labourId, orgId);
+            return ledger.balance;
         }
     }
 }

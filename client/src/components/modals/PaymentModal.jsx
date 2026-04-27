@@ -30,26 +30,13 @@ import { generatePaymentReceipt } from "@/utils/pdfGenerator";
 
 const LabourBalanceDisplay = ({ labourId }) => {
     const { getLabourBalance } = useLabourers();
-    const [balance, setBalance] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchBalance = async () => {
-            setLoading(true);
-            try {
-                const bal = await getLabourBalance(labourId);
-                setBalance(bal);
-            } catch (err) {
-                if (import.meta.env.DEV) console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (labourId) fetchBalance();
-    }, [labourId, getLabourBalance]);
+    const balanceQuery = getLabourBalance(labourId);
+    
+    const balance = balanceQuery.data;
+    const loading = balanceQuery.isLoading;
 
     if (loading) return <span className="text-muted-foreground text-sm">Checking balance...</span>;
-    if (balance === null) return null;
+    if (balance === undefined || balance === null) return null;
 
     const isPending = balance >= 0;
     return (

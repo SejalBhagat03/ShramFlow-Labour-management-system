@@ -216,9 +216,9 @@ const DailyLogs = () => {
 
     return (
         <AppLayout>
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-3 md:space-y-6">
+            <div className="space-y-3 md:space-y-6">
                 {/* Immersive Page Header */}
-                <div className="relative -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
+                <div className="relative pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-b border-white/10">
                     <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-6">
                         <div>
                             <div className="flex items-center gap-2 mb-1">

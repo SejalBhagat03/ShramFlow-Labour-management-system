@@ -40,6 +40,69 @@ import { cn } from '@/lib/utils';
 import { useProjects } from '@/hooks/useProjects';
 import { useNavigate } from 'react-router-dom';
 import { useFocusProject } from '@/hooks/useFocusProject';
+import { format, parseISO } from 'date-fns';
+
+const PROJECT_THEMES = [
+    { 
+        id: 'emerald', 
+        primary: 'text-emerald-600', 
+        bg: 'bg-emerald-500', 
+        border: 'hover:border-emerald-200', 
+        glow: 'hover:shadow-emerald-500/10',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        iconBg: 'bg-emerald-50 text-emerald-600'
+    },
+    { 
+        id: 'blue', 
+        primary: 'text-blue-600', 
+        bg: 'bg-blue-500', 
+        border: 'hover:border-blue-200', 
+        glow: 'hover:shadow-blue-500/10',
+        badge: 'bg-blue-50 text-blue-700 border-blue-100',
+        iconBg: 'bg-blue-50 text-blue-600'
+    },
+    { 
+        id: 'purple', 
+        primary: 'text-purple-600', 
+        bg: 'bg-purple-500', 
+        border: 'hover:border-purple-200', 
+        glow: 'hover:shadow-purple-500/10',
+        badge: 'bg-purple-50 text-purple-700 border-purple-100',
+        iconBg: 'bg-purple-50 text-purple-600'
+    },
+    { 
+        id: 'amber', 
+        primary: 'text-amber-600', 
+        bg: 'bg-amber-500', 
+        border: 'hover:border-amber-200', 
+        glow: 'hover:shadow-amber-500/10',
+        badge: 'bg-amber-50 text-amber-700 border-amber-100',
+        iconBg: 'bg-amber-50 text-amber-600'
+    },
+    { 
+        id: 'rose', 
+        primary: 'text-rose-600', 
+        bg: 'bg-rose-500', 
+        border: 'hover:border-rose-200', 
+        glow: 'hover:shadow-rose-500/10',
+        badge: 'bg-rose-50 text-rose-700 border-rose-100',
+        iconBg: 'bg-rose-50 text-rose-600'
+    },
+    { 
+        id: 'indigo', 
+        primary: 'text-indigo-600', 
+        bg: 'bg-indigo-500', 
+        border: 'hover:border-indigo-200', 
+        glow: 'hover:shadow-indigo-500/10',
+        badge: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        iconBg: 'bg-indigo-50 text-indigo-600'
+    },
+];
+
+const getProjectTheme = (id) => {
+    const seed = typeof id === 'number' ? id : String(id).split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    return PROJECT_THEMES[seed % PROJECT_THEMES.length];
+};
 
 const Projects = () => {
     const { t } = useTranslation();
@@ -124,9 +187,9 @@ const Projects = () => {
                 </div>
 
                 {/* Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {isLoading ? (
-                        [1, 2, 3].map(i => <div key={i} className="h-64 bg-white border border-border animate-pulse rounded-2xl" />)
+                        [1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-white border border-border animate-pulse rounded-2xl" />)
                     ) : filteredProjects.length === 0 ? (
                         <div className="col-span-full py-20 text-center bg-white border-2 border-dashed border-border rounded-2xl">
                             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
@@ -134,55 +197,61 @@ const Projects = () => {
                             <p className="text-sm text-muted-foreground mt-1">Try starting a new project above.</p>
                         </div>
                     ) : (
-                        filteredProjects.map((project) => (
-                            <div key={project.id} className="bg-white rounded-2xl border border-border p-6 shadow-sm hover:border-emerald-200 transition-all group">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                        <Briefcase className="h-5 w-5" />
-                                    </div>
-                                    <Badge variant="outline" className={cn(
-                                        "rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                        project.status === 'active' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-muted text-muted-foreground border-transparent"
-                                    )}>
-                                        {project.status}
-                                    </Badge>
-                                </div>
-                                <h3 className="text-lg font-bold text-foreground mb-1">{project.name}</h3>
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-6 h-10">{project.description || 'No description provided'}</p>
-                                
-                                <div className="space-y-3 pt-4 border-t border-border border-dashed">
-                                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        <div className="flex items-center gap-1.5">
-                                            <IndianRupee className="h-3 w-3" />
-                                            <span>Budget</span>
-                                        </div>
-                                        <span className="text-foreground">₹{Number(project.budget || 0).toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        <div className="flex items-center gap-1.5">
-                                            <MapPin className="h-3 w-3" />
-                                            <span>Location</span>
-                                        </div>
-                                        <span className="text-foreground truncate max-w-[120px]">{project.site_location || 'Not set'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="h-3 w-3" />
-                                            <span>Timeline</span>
-                                        </div>
-                                        <span className="text-foreground">{project.start_date || 'TBD'}</span>
-                                    </div>
-                                </div>
-
-                                <Button 
-                                    variant="outline" 
-                                    className="w-full mt-6 rounded-xl border-border font-bold text-xs h-9 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                        filteredProjects.map((project) => {
+                            const theme = getProjectTheme(project.id);
+                            return (
+                                <div 
+                                    key={project.id} 
+                                    className={cn(
+                                        "relative bg-white rounded-2xl border border-border p-4 shadow-sm transition-all duration-300 group overflow-hidden",
+                                        theme.border,
+                                        theme.glow,
+                                        "hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                                    )}
                                     onClick={() => navigate(`/projects/${project.id}`)}
                                 >
-                                    View Details
-                                </Button>
-                            </div>
-                        ))
+                                    {/* Color Accent Line */}
+                                    <div className={cn("absolute top-0 left-0 right-0 h-1 opacity-70 group-hover:opacity-100 transition-opacity", theme.bg)} />
+                                    
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-colors", theme.iconBg)}>
+                                            <Briefcase className="h-4 w-4" />
+                                        </div>
+                                        <Badge variant="outline" className={cn(
+                                            "rounded-full px-2 py-0 text-[9px] font-bold uppercase tracking-wider border-none",
+                                            project.status === 'active' ? theme.badge : "bg-slate-100 text-slate-500"
+                                        )}>
+                                            {project.status}
+                                        </Badge>
+                                    </div>
+                                    
+                                    <h3 className="text-sm font-black text-slate-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-1">{project.name}</h3>
+                                    <p className="text-[10px] font-medium text-slate-500 line-clamp-1 mb-4">{project.description || 'Active Site Management'}</p>
+                                    
+                                    <div className="grid grid-cols-2 gap-2 py-3 border-t border-slate-100 border-dashed">
+                                        <div className="space-y-0.5">
+                                            <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">Budget</p>
+                                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-900">
+                                                <IndianRupee className="h-2.5 w-2.5 text-slate-400" />
+                                                <span>{Number(project.budget || 0).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">Location</p>
+                                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-900">
+                                                <MapPin className="h-2.5 w-2.5 text-slate-400" />
+                                                <span className="truncate">{project.site_location || 'Remote'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-2 pt-2 flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-slate-300 group-hover:text-emerald-500 transition-colors">
+                                        <span>Full Analysis</span>
+                                        <Zap className="h-2.5 w-2.5" />
+                                    </div>
+                                </div>
+                            );
+                        })
                     )}
                 </div>
 

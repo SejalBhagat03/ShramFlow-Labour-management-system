@@ -1,4 +1,10 @@
-const supabase = require('../config/supabase');
+const ROLE_WEIGHTS = {
+    'Lead': 1.5,
+    'Electrician': 1.4,
+    'Fitter': 1.3,
+    'Helper': 1.0,
+    'Trainee': 0.8
+};
 
 /**
  * EquiFlow Service
@@ -7,31 +13,43 @@ const supabase = require('../config/supabase');
 class EquiFlowService {
     /**
      * calculateSmartDistribution
-     * Returns suggested work shares for a group of labourers based on performance.
+     * Returns suggested work shares for a group of labourers based on performance, skill, and manual weights.
      */
-    async calculateSmartDistribution(labourIds, totalQuantity, orgId) {
+    async calculateSmartDistribution(labourIds, totalQuantity, orgId, manualWeights = {}) {
         if (!labourIds || labourIds.length === 0) return [];
 
-        // 1. Fetch historical performance for these labourers
+        // 1. Fetch historical performance AND roles for these labourers
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data: history } = await supabase
-            .from('work_entries')
-            .select('labourer_id, work_done, meters, date')
-            .in('labourer_id', labourIds)
-            .eq('organization_id', orgId)
-            .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-            .eq('is_deleted', false);
+        const [historyRes, labourDetailsRes] = await Promise.all([
+            supabase
+                .from('work_entries')
+                .select('labourer_id, work_done, meters, date')
+                .in('labourer_id', labourIds)
+                .eq('organization_id', orgId)
+                .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+                .eq('is_deleted', false),
+            supabase
+                .from('labourers')
+                .select('id, role, name')
+                .in('id', labourIds)
+        ]);
+
+        const history = historyRes.data || [];
+        const labourDetails = labourDetailsRes.data || [];
 
         // 2. Process metrics per labourer
         const stats = {};
         labourIds.forEach(id => {
+            const detail = labourDetails.find(l => l.id === id);
             stats[id] = {
+                name: detail?.name || 'Worker',
+                role: detail?.role || 'Helper',
                 totalWork: 0,
                 daysActive: 0,
-                velocity: 1, // Default base velocity
-                recentLoad: 0, // Work in last 3 days
+                velocity: 1, 
+                recentLoad: 0, 
                 burnoutRisk: 0
             };
         });
@@ -40,15 +58,17 @@ class EquiFlowService {
         const threeDaysAgo = new Date();
         threeDaysAgo.setDate(today.getDate() - 3);
 
-        (history || []).forEach(entry => {
+        history.forEach(entry => {
             const val = Number(entry.work_done || entry.meters || 0);
             const entryDate = new Date(entry.date);
             
-            stats[entry.labourer_id].totalWork += val;
-            stats[entry.labourer_id].daysActive += 1;
+            if (stats[entry.labourer_id]) {
+                stats[entry.labourer_id].totalWork += val;
+                stats[entry.labourer_id].daysActive += 1;
 
-            if (entryDate >= threeDaysAgo) {
-                stats[entry.labourer_id].recentLoad += val;
+                if (entryDate >= threeDaysAgo) {
+                    stats[entry.labourer_id].recentLoad += val;
+                }
             }
         });
 
@@ -58,15 +78,22 @@ class EquiFlowService {
 
         labourIds.forEach(id => {
             const s = stats[id];
-            const avgVelocity = s.daysActive > 0 ? (s.totalWork / s.daysActive) : 5; // Assume 5m avg if new
             
-            // Burnout Penalty: If worked > 40m in last 3 days, reduce weight
+            // Skill Weight (based on Role)
+            const skillWeight = ROLE_WEIGHTS[s.role] || 1.0;
+            
+            // Performance Metric (Velocity)
+            const avgVelocity = s.daysActive > 0 ? (s.totalWork / s.daysActive) : 5;
+            
+            // Burnout Penalty
             const burnoutPenalty = s.recentLoad > 40 ? 0.7 : 1.0;
             
-            // Performance Boost: Experienced workers get slightly more (but capped to prevent overloading)
-            const experienceBoost = Math.min(1.5, 1 + (s.totalWork / 500)); 
+            // Manual Override (if provided)
+            const manualWeight = manualWeights[id] || 1.0;
 
-            const finalWeight = avgVelocity * burnoutPenalty * experienceBoost;
+            // Final Calculation: Skill * Performance * Burnout * Manual
+            const finalWeight = skillWeight * avgVelocity * burnoutPenalty * manualWeight;
+            
             weights[id] = finalWeight;
             totalWeight += finalWeight;
         });
@@ -74,12 +101,16 @@ class EquiFlowService {
         // 4. Final Allocation
         return labourIds.map(id => {
             const share = (weights[id] / totalWeight) * totalQuantity;
+            const s = stats[id];
             return {
                 labourer_id: id,
+                name: s.name,
+                role: s.role,
                 suggested_quantity: Math.round(share * 100) / 100,
                 metrics: {
-                    velocity: (weights[id]).toFixed(1),
-                    burnout_risk: stats[id].recentLoad > 40 ? 'High' : 'Low'
+                    skill_multiplier: (ROLE_WEIGHTS[s.role] || 1.0).toFixed(1),
+                    avg_velocity: (s.daysActive > 0 ? (s.totalWork / s.daysActive) : 5).toFixed(1),
+                    burnout_risk: s.recentLoad > 40 ? 'High' : 'Low'
                 }
             };
         });

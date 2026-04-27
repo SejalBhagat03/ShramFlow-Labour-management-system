@@ -45,31 +45,32 @@ const LabourProfile = () => {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
     const lang = i18n.language;
-    const [labour, setLabour] = useState(null);
-    const [balance, setBalance] = useState(0);
-    const [stats, setStats] = useState({ total_earned: 0, total_paid: 0 });
-    const [isLoading, setIsLoading] = useState(true);
     const { getLabourBalance, getLabourStats, deleteLabourer } = useLabourers();
+    
+    // New Reactive Queries
+    const balanceQuery = getLabourBalance(id);
+    const statsQuery = getLabourStats(id);
+    
+    const [labour, setLabour] = useState(null);
+    const [isLabourLoading, setIsLabourLoading] = useState(true);
 
     useEffect(() => {
-        const fetchAllData = async () => {
+        const fetchLabour = async () => {
             try {
-                const [labourData, bal, st] = await Promise.all([
-                    labourerService.getLabourerById(id),
-                    getLabourBalance(id),
-                    getLabourStats(id)
-                ]);
+                const labourData = await labourerService.getLabourerById(id);
                 setLabour(labourData);
-                setBalance(bal);
-                setStats(st);
             } catch (error) {
                 console.error("Failed to fetch labourer profile:", error);
             } finally {
-                setIsLoading(false);
+                setIsLabourLoading(false);
             }
         };
-        fetchAllData();
+        fetchLabour();
     }, [id]);
+
+    const balance = balanceQuery.data || 0;
+    const stats = statsQuery.data || { total_earned: 0, total_paid: 0 };
+    const isLoading = isLabourLoading || balanceQuery.isLoading || statsQuery.isLoading;
 
     const handleDelete = () => {
         if (window.confirm(`Are you sure you want to delete this labourer's record?`)) {

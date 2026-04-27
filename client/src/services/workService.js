@@ -160,8 +160,6 @@ export const workService = {
 
         const queue = JSON.parse(localStorage.getItem('shramflow_offline_queue') || '[]');
         if (queue.length === 0) return;
-
-        console.log(`[OfflineSync] Attempting to sync ${queue.length} items...`);
         const remainingQueue = [];
 
         for (const item of queue) {

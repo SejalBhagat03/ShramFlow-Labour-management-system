@@ -3,11 +3,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (range = 'week') => {
     const { user } = useAuth();
 
     const { data: stats, isLoading, error } = useQuery({
-        queryKey: ['dashboard_stats', user?.id, user?.organization_id],
+        queryKey: ['dashboard_stats', user?.id, user?.organization_id, range],
         queryFn: async () => {
             const orgId = user?.organization_id;
             const isValidOrg = orgId && orgId !== 'null' && orgId !== 'undefined';
@@ -116,14 +116,23 @@ export const useDashboardStats = () => {
             const totalMetersToday = todayEntries.reduce((sum, w) => sum + (Number(w.meters) || 0), 0);
             const totalHoursToday = todayEntries.reduce((sum, w) => sum + (Number(w.hours) || 0), 0);
 
-            // Calculate Productivity Data (Last 7 Days)
-            const last7Days = [...Array(7)].map((_, i) => {
+            const getDaysCount = () => {
+                switch(range) {
+                    case 'month': return 30;
+                    case 'quarter': return 90;
+                    case 'year': return 365;
+                    case 'all': return 730; // 2 years
+                    default: return 7;
+                }
+            };
+
+            const lastNDays = [...Array(getDaysCount())].map((_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 return d.toISOString().split('T')[0];
             }).reverse();
 
-            const productivityData = last7Days.map(date => {
+            const productivityData = lastNDays.map(date => {
                 const dayEntries = allWork.filter(w => w.date && w.date.toString().substring(0, 10) === date);
                 return {
                     name: format(new Date(date), 'EEE'),

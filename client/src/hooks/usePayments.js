@@ -68,6 +68,8 @@ export const usePayments = () => {
             queryClient.invalidateQueries({ queryKey: ["payments"] });
             queryClient.invalidateQueries({ queryKey: ["activities"] });
             queryClient.invalidateQueries({ queryKey: ["dashboard_stats"] });
+            queryClient.invalidateQueries({ queryKey: ["labour_balance"] });
+            queryClient.invalidateQueries({ queryKey: ["labour_stats"] });
             toast({
                 title: "Payment Recorded",
                 description: "Manual payment has been recorded successfully.",

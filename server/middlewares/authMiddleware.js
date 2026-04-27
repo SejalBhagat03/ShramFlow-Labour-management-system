@@ -13,7 +13,6 @@ exports.protect = async (req, res, next) => {
         }
 
         if (!token) {
-            console.log('[AuthMiddleware] No token provided');
             return res.status(401).json({ error: 'Not authorized, no token' });
         }
 
@@ -21,7 +20,6 @@ exports.protect = async (req, res, next) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            console.log('[AuthMiddleware] Token verification failed:', authError?.message);
             return res.status(401).json({ error: 'Not authorized, invalid token', message: authError?.message });
         }
 
@@ -39,19 +37,15 @@ exports.protect = async (req, res, next) => {
 
         // Attach user
         req.user = user;
-        console.log(`[AuthMiddleware] User: ${user.id}, Email: ${user.email}`);
         
         // 3. Resolve Organization ID (DB -> Metadata -> Query -> Header)
         let orgId = profile?.organization_id || 
                       user.user_metadata?.organization_id || 
                       req.query.organization_id || 
                       req.headers['x-organization-id'];
-        
-        console.log(`[AuthMiddleware] Initial orgId: ${orgId} (from Profile: ${!!profile?.organization_id}, Metadata: ${!!user.user_metadata?.organization_id})`);
 
         // 4. Fallback for Supervisors/Admins if still no orgId
         if (!orgId || orgId === 'null') {
-            console.log('[AuthMiddleware] Attempting fallback for supervisor/admin...');
             const { data: roleData, error: roleErr } = await supabase
                 .from('user_roles')
                 .select('role')
@@ -62,7 +56,6 @@ exports.protect = async (req, res, next) => {
             if (roleErr) console.error('[AuthMiddleware] Role check error:', roleErr.message);
 
             if (roleData) {
-                console.log(`[AuthMiddleware] Detected role: ${roleData.role}, fetching first organization...`);
                 const { data: firstOrg, error: orgErr } = await supabase
                     .from('organizations')
                     .select('id')
@@ -74,12 +67,9 @@ exports.protect = async (req, res, next) => {
 
                 if (firstOrg) {
                     orgId = firstOrg.id;
-                    console.log('[AuthMiddleware] Fallback SUCCESS: orgId =', orgId);
                 } else {
                     console.warn('[AuthMiddleware] Fallback FAILED: No organizations found');
                 }
-            } else {
-                console.log('[AuthMiddleware] No supervisor/admin role found for fallback');
             }
         }
 

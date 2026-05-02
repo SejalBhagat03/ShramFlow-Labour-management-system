@@ -1,15 +1,15 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
-import { AppLayout } from "@/components/AppLayout";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { supabase } from "@/api/supabase";
+import { AppLayout } from "@/layouts/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/features/shared/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Bell, Shield, Globe, Camera, Save } from "lucide-react";
 

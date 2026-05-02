@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/features/shared/utils/utils";
 
 function Kbd({ className, ...props }) {
     return (

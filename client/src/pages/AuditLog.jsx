@@ -11,11 +11,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, History, User, Activity, Clock, ShieldCheck, Terminal } from "lucide-react";
-import { AppLayout } from "@/components/AppLayout";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
-import { API_BASE } from "@/lib/api";
-import { cn } from '@/lib/utils';
+import { AppLayout } from "@/layouts/AppLayout";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { supabase } from "@/api/supabase";
+import { API_BASE } from "@/api/api";
+import { cn } from '@/features/shared/utils/utils';
 
 const AuditLog = () => {
     const { t } = useTranslation();

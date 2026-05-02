@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/features/shared/utils/utils";
 
 function Empty({ className, ...props }) {
     return (

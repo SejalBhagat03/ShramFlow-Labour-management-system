@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
-import { useTrash } from '@/hooks/useTrash';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useTrash } from '@/features/admin/hooks/useTrash';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,7 +18,7 @@ import {
     Filter
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn } from '@/features/shared/utils/utils';
 import {
     Tooltip,
     TooltipContent,

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppLayout } from "@/components/AppLayout";
+import { AppLayout } from "@/layouts/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Calendar, TrendingUp, Users, Ruler, Loader2 } from "lucide-react";
-import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useDashboardStats } from "@/features/admin/hooks/useDashboardStats";
 import { format } from "date-fns";
 import {
     BarChart,

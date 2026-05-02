@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
-import { useProjectPulse } from '@/hooks/useProjectPulse';
-import { useActivities } from '@/hooks/useActivities';
-import { ActivityFeed } from '@/components/ActivityFeed';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useProjectPulse } from '@/features/projects/hooks/useProjectPulse';
+import { useActivities } from '@/features/work/hooks/useActivities';
+import { ActivityFeed } from '@/features/work/components/ActivityFeed';
 import { motion } from 'framer-motion';
 import {
     Zap,
@@ -24,10 +24,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
-import { StatCard } from '@/components/StatCard';
-import { useFocusProject } from '@/hooks/useFocusProject';
-import { ProjectHealthWidget } from '@/components/projects/ProjectHealthWidget';
+import { cn } from '@/features/shared/utils/utils';
+import { StatCard } from '@/features/shared/components/StatCard';
+import { useFocusProject } from '@/features/projects/hooks/useFocusProject';
+import { ProjectHealthWidget } from '@/features/projects/components/ProjectHealthWidget';
 
 const ProjectDetails = () => {
     const { id } = useParams();
@@ -107,7 +107,7 @@ const ProjectDetails = () => {
                             className="rounded-xl gradient-primary shadow-glow font-bold"
                             onClick={() => {
                                 setFocus(project.id);
-                                navigate('/work-entries');
+                                navigate('/work-entries/group');
                             }}
                         >
                             <Plus className="h-4 w-4 mr-2" />
@@ -139,7 +139,12 @@ const ProjectDetails = () => {
                             />
                             <StatCard
                                 title="Efficiency"
-                                value={`${((project.total_work_done || 0) / (Math.max(1, Math.ceil((new Date() - new Date(project.start_date)) / (1000 * 60 * 60 * 24))))).toFixed(1)} u/d`}
+                                value={(() => {
+                                    const start = project.start_date ? new Date(project.start_date) : new Date();
+                                    const diff = Math.max(1, Math.ceil((new Date() - start) / (1000 * 60 * 60 * 24)));
+                                    const val = (project.total_work_done || 0) / diff;
+                                    return `${isNaN(val) ? '0.0' : val.toFixed(1)} u/d`;
+                                })()}
                                 icon={TrendingUp}
                                 className="glass-strong border-none"
                             />

@@ -36,65 +36,58 @@ Before running the project locally, make sure you have:
 2. A [Supabase](https://supabase.com/) Account & Project setup.
 
 ### 📂 Project Structure
-The project is structured as a powerful monorepo containing both the frontend client and backend utility server:
+The project is structured as a professional full-stack application with clean separation between the frontend and backend:
 
 ```text
-📂 labour-hub-main
- ├── 📂 client/      # Frontend (React + Vite + Tailwind CSS)
- ├── 📂 server/      # Backend Service (Node.js + Express)
- ├── 📝 schema.sql   # Postgres DB Initialization Script
+📂 ShramFlow
+ ├── 📂 client/           # Frontend (React + Vite)
+ │    └── 📂 src/
+ │         ├── 📂 components/  # Well-structured UI components
+ │         └── ...
+ ├── 📂 server/           # Backend (Node.js + Express)
+ │    ├── 📂 src/         # API logic (routes, controllers, services)
+ │    ├── 📂 database/    # SQL schemas
+ │    └── 📂 supabase/    # Supabase config and edge functions
+ └── 📝 package.json      # Root orchestration (Run both with 1 command)
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Installation
+Install dependencies for the entire project (root, client, and server) from the root directory:
+
+```bash
+npm run install-all
+```
+
+### 2. Configuration
+- Backend: Create `server/.env` with your `GEMINI_API_KEY` and Supabase credentials.
+- Frontend: Create `client/.env` with your Supabase URL and Anon Key.
+
+### 3. Running the App
+You can start both the frontend and backend simultaneously using the root command:
+
+```bash
+npm run dev
 ```
 
 ---
 
 ## 🎨 Frontend Setup (React + Vite)
-The frontend client communicates directly with Supabase for data and the local server for payments.
-
-### 🔧 Installation
-Navigate to the frontend directory and install dependencies:
-
-```bash
-cd client
-npm install
-```
+Located in the `client/` directory.
 
 ### 📦 Key Dependencies
 - React 18 & Vite
 - Tailwind CSS & shadcn/ui
 - TanStack Query
 - Supabase JS Client
-- Lucide Icons
-
-### 🚀 Run the Frontend
-```bash
-npm run dev
-```
 
 ---
 
 ## 🔙 Backend Setup (Node.js + Express)
-The backend manages secure auxiliary tasks like payment processing and Razorpay integration.
-
-### 🔧 Installation
-Navigate to the backend directory and install dependencies:
-
-```bash
-cd server
-npm install
-```
-
-### 🛠️ Environment Variables (.env)
-Create a `.env` file in the backend directory with your service variables:
-
-```env
-PORT=5000
-# Add Razorpay & Supabase Service Keys here
-```
-
-### 🚀 Run the Backend
-```bash
-npm run dev
-```
+Located in the `server/` directory. Logic is housed in `server/src/`.
 
 ---
 

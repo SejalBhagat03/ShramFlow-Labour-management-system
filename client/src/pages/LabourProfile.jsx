@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
+import { AppLayout } from '@/layouts/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,12 +27,12 @@ import {
     Users,
     Percent
 } from 'lucide-react';
-import { labourerService } from '@/services/labourerService';
-import { LabourLedger } from '@/components/LabourLedger';
-import { TrustScoreBadge } from '@/components/TrustScoreBadge';
-import { cn } from '@/lib/utils';
-import { useLabourers } from '@/hooks/useLabourers';
-import { generateWhatsAppLink, whatsappTemplates } from '@/utils/whatsapp';
+import { labourerService } from '@/features/workforce/services/labourerService';
+import { LabourLedger } from '@/features/workforce/components/LabourLedger';
+import { TrustScoreBadge } from '@/features/workforce/components/TrustScoreBadge';
+import { cn } from '@/features/shared/utils/utils';
+import { useLabourers } from '@/features/workforce/hooks/useLabourers';
+import { generateWhatsAppLink, whatsappTemplates } from '@/features/shared/utils/whatsapp';
 
 const WhatsAppIcon = ({ className }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">

@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/hooks/useAuth";
-import { labourerService } from "@/services/labourerService";
-import { notificationService } from "@/services/notificationService";
-import { ledgerService } from "@/services/ledgerService";
-import { workService } from "@/services/workService";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { labourerService } from "@/features/workforce/services/labourerService";
+import { notificationService } from "@/features/admin/services/notificationService";
+import { ledgerService } from "@/features/workforce/services/ledgerService";
+import { workService } from "@/features/work/services/workService";
 import { useNavigate } from "react-router-dom";
-import { NotificationBell } from "@/components/NotificationBell";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useToast } from "@/hooks/use-toast";
+import { NotificationBell } from "@/features/shared/components/NotificationBell";
+import { LanguageSwitcher } from "@/features/shared/components/LanguageSwitcher";
+import { useToast } from "@/features/shared/hooks/use-toast";
 import { 
     LogOut, 
     HardHat, 

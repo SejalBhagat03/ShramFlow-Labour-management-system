@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { AppLayout } from "@/components/AppLayout";
-import { usePayments } from "@/hooks/usePayments";
-import { useLabourers } from "@/hooks/useLabourers";
+import { AppLayout } from "@/layouts/AppLayout";
+import { usePayments } from "@/features/payments/hooks/usePayments";
+import { useLabourers } from "@/features/workforce/hooks/useLabourers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     DropdownMenu,
@@ -22,9 +22,9 @@ import {
     Eye,
     Plus,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/features/shared/utils/utils";
 import { toast } from "sonner";
-import { PaymentModal } from "@/components/modals/PaymentModal";
+import { PaymentModal } from "@/features/payments/components/PaymentModal";
 
 /**
  * Payments page component for managing labourer payments.

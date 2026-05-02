@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
+import { AppLayout } from '@/layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/features/shared/hooks/use-toast';
 import {
     Dialog,
     DialogContent,
@@ -36,10 +36,10 @@ import {
     Zap,
     Loader2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useProjects } from '@/hooks/useProjects';
+import { cn } from '@/features/shared/utils/utils';
+import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useNavigate } from 'react-router-dom';
-import { useFocusProject } from '@/hooks/useFocusProject';
+import { useFocusProject } from '@/features/projects/hooks/useFocusProject';
 import { format, parseISO } from 'date-fns';
 
 const PROJECT_THEMES = [
@@ -338,10 +338,10 @@ const Projects = () => {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent className="rounded-2xl border-none shadow-xl font-bold">
-                                                <SelectItem value="Solar Installation">Solar Installation</SelectItem>
-                                                <SelectItem value="Wiring">Wiring</SelectItem>
-                                                <SelectItem value="Digging">Digging</SelectItem>
-                                                <SelectItem value="Pole Installation">Pole Installation</SelectItem>
+                                                <SelectItem value="taskSolarInstallation">{t('taskSolarInstallation')}</SelectItem>
+                                                <SelectItem value="taskWiring">{t('taskWiring')}</SelectItem>
+                                                <SelectItem value="taskDiggingHole">{t('taskDiggingHole')}</SelectItem>
+                                                <SelectItem value="taskPoleInstallation">{t('taskPoleInstallation')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>

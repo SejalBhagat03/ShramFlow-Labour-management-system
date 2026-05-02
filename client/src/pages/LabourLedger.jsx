@@ -1,11 +1,11 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
-import { useLabourLedger } from '@/hooks/useLabourLedger';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useLabourLedger } from '@/features/workforce/hooks/useLabourLedger';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { paymentService } from '@/services/paymentService';
-import { useAuth } from '@/hooks/useAuth';
+import { paymentService } from '@/features/payments/services/paymentService';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -33,8 +33,8 @@ import {
     Calendar,
     Briefcase
 } from 'lucide-react';
-import { pdfService } from '@/services/pdfService';
-import { cn } from '@/lib/utils';
+import { pdfService } from '@/features/admin/services/pdfService';
+import { cn } from '@/features/shared/utils/utils';
 
 const LabourLedger = () => {
     const { id } = useParams();

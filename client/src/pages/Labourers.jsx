@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/useAuth';
-import { AppLayout } from '@/components/AppLayout';
-import { useLabourers } from '@/hooks/useLabourers';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useLabourers } from '@/features/workforce/hooks/useLabourers';
 import { Button } from '@/components/ui/button';
 import { 
     Activity, 
@@ -14,10 +14,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 // New Modular Components
-import { StatsCard } from '@/components/workforce/StatsCard';
-import { LabourCard } from '@/components/workforce/LabourCard';
-import { FilterBar } from '@/components/workforce/FilterBar';
-import { LabourerModal } from '@/components/modals/LabourerModal';
+import { StatsCard } from '@/features/workforce/components/StatsCard';
+import { LabourCard } from '@/features/workforce/components/LabourCard';
+import { FilterBar } from '@/features/workforce/components/FilterBar';
+import { LabourerModal } from '@/features/workforce/components/LabourerModal';
 
 const Labourers = () => {
     const { t, i18n } = useTranslation();

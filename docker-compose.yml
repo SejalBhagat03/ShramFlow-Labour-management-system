@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  server:
+    build: ./server
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  client:
+    build: ./client
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server

@@ -13,8 +13,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 
-import { AuthProvider } from "@/contexts/AuthProvider";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
@@ -22,6 +22,7 @@ const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const RecycleBin = React.lazy(() => import("./pages/RecycleBin"));
 // Keeping other specialized pages lazy
 const Labourers = React.lazy(() => import("./pages/Labourers"));
+
 const LabourLedger = React.lazy(() => import("./pages/LabourLedger"));
 const WorkEntries = React.lazy(() => import("./pages/WorkEntries"));
 const Payments = React.lazy(() => import("./pages/Payments"));
@@ -40,9 +41,9 @@ const ProjectDetails = React.lazy(() => import("./pages/ProjectDetails"));
 const CommandCenter = React.lazy(() => import("./pages/CommandCenter"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
-import { Chatbot } from "./components/Chatbot";
-import { OfflineIndicator } from "./components/OfflineIndicator";
-import Commander from "./components/Commander";
+import { Chatbot } from "./features/ai/components/Chatbot";
+import { OfflineIndicator } from "./features/shared/components/OfflineIndicator";
+import Commander from "./features/ai/components/Commander";
 
 import { Loader2, Shield, WifiOff } from "lucide-react";
 
@@ -247,6 +248,13 @@ const AppRoutes = () => {
             />
 
             <Route
+                path="/attendance"
+                element={<Navigate to="/command-center" replace />}
+            />
+
+
+
+            <Route
                 path="/labourers/:id"
                 element={
                     <ProtectedRoute allowedRoles={["supervisor"]}>
@@ -380,7 +388,7 @@ const AppRoutes = () => {
     );
 };
 
-import ErrorBoundary from "./components/ErrorBoundary";
+import ErrorBoundary from "./features/shared/components/ErrorBoundary";
 
 /* ---------------------------------- */
 /* App Wrapper */

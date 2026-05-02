@@ -18,8 +18,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       devOptions: {
-        enabled: true, // Re-enable to ensure manifest is served correctly in dev
-        type: 'classic' // Classic mode often more stable for dev SW
+        enabled: false, // Disabled to prevent console log flooding in development
       },
       useCredentials: true, // Prevent manifest syntax errors behind auth
       manifest: {

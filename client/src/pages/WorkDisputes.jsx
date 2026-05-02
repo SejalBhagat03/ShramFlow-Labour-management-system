@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AppLayout } from '@/components/AppLayout';
+import { AppLayout } from '@/layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/features/shared/hooks/use-toast';
 import {
     AlertTriangle,
     CheckCircle,
@@ -30,9 +30,9 @@ import {
     User as UserIcon,
     ArrowRight
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase'; // Can move to service later if fully refactored
-import { workService } from '@/services/workService'; // Assuming we create methods for disputes here
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/api/supabase'; // Can move to service later if fully refactored
+import { workService } from '@/features/work/services/workService'; // Assuming we create methods for disputes here
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 /**
  * WorkDisputes Page

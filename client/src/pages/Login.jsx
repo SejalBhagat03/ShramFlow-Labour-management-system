@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { LanguageSwitcher } from '@/features/shared/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useRef, useEffect } from 'react';
 import { HardHat, UserCircle, Phone, Lock, Mail, User, Loader2, Eye, EyeOff, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { authService } from '@/services/authService';
-import { labourerService } from '@/services/labourerService';
-import { supabase } from '@/lib/supabase';
+import { useToast } from '@/features/shared/hooks/use-toast';
+import { authService } from '@/features/auth/services/authService';
+import { labourerService } from '@/features/workforce/services/labourerService';
+import { supabase } from '@/api/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**

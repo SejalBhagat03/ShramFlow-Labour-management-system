@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
-import { useCommandCenter } from '@/hooks/useCommandCenter';
-import { ActivityFeed } from '@/components/ActivityFeed';
-import { QuickActionsGrid } from '@/components/QuickActionsGrid';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useCommandCenter } from '@/features/admin/hooks/useCommandCenter';
+import { ActivityFeed } from '@/features/work/components/ActivityFeed';
+import { QuickActionsGrid } from '@/features/shared/components/QuickActionsGrid';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Zap, 
@@ -38,13 +38,13 @@ import {
     BarChart3,
     Loader2
 } from 'lucide-react';
-import { workService } from '@/services/workService';
-import { supabase } from '@/lib/supabase';
+import { workService } from '@/features/work/services/workService';
+import { supabase } from '@/api/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { cn } from '@/features/shared/utils/utils';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
@@ -53,7 +53,7 @@ import {
     TooltipProvider, 
     TooltipTrigger 
 } from '@/components/ui/tooltip';
-import { API_BASE } from '@/lib/api';
+import { API_BASE } from '@/api/api';
 
 const CommandCenter = () => {
     const { t } = useTranslation();

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
-import { useWorkEntries } from '@/hooks/useWorkEntries';
-import { useLabourers } from '@/hooks/useLabourers';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useWorkEntries } from '@/features/work/hooks/useWorkEntries';
+import { useLabourers } from '@/features/workforce/hooks/useLabourers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +22,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from 'sonner';
 import {
     Search,
     ClipboardPlus,
@@ -31,12 +32,12 @@ import {
     Users,
     IndianRupee
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/features/shared/utils/utils';
 import { useNavigate } from 'react-router-dom';
-import { projectService } from '@/services/projectService';
+import { projectService } from '@/features/projects/services/projectService';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusProject } from '@/hooks/useFocusProject';
-import { WorkEntryModal } from '@/components/modals/WorkEntryModal';
+import { useFocusProject } from '@/features/projects/hooks/useFocusProject';
+import { WorkEntryModal } from '@/features/work/components/WorkEntryModal';
 
 const WorkEntries = () => {
     const { t } = useTranslation();
@@ -64,10 +65,11 @@ const WorkEntries = () => {
     const { focusProjectId } = useFocusProject();
 
     const filteredEntries = workEntries.filter((entry) => {
-        const labourerName = entry.getLabourerName().toLowerCase();
+        const labourerName = (entry.getLabourerName?.() || 'Unknown').toLowerCase();
+        const taskType = (entry.task_type || 'General').toLowerCase();
         const matchesSearch =
             labourerName.includes(search.toLowerCase()) ||
-            entry.task_type.toLowerCase().includes(search.toLowerCase());
+            taskType.includes(search.toLowerCase());
         const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -119,6 +121,9 @@ const WorkEntries = () => {
             setSelectedIds([]);
         } catch (err) {
             console.error("Bulk approval failed", err);
+            const errorMessage = err.response?.data?.message || err.message || "Failed to approve work entries";
+            const errorDetails = err.response?.data?.details || "";
+            toast.error(`${errorMessage} ${errorDetails}`);
         }
     };
 

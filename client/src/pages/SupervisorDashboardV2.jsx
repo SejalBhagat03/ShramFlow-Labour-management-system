@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
+import { AppLayout } from '@/layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -18,10 +18,10 @@ import {
     CheckCircle2,
     Calendar
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useDashboardInsights } from '@/hooks/useDashboardInsights';
+import { cn } from '@/features/shared/utils/utils';
+import { useDashboardInsights } from '@/features/admin/hooks/useDashboardInsights';
 import { useNavigate } from 'react-router-dom';
-import { StatsCard } from '@/components/workforce/StatsCard';
+import { StatsCard } from '@/features/workforce/components/StatsCard';
 
 const SupervisorDashboardV2 = () => {
     const { t } = useTranslation();

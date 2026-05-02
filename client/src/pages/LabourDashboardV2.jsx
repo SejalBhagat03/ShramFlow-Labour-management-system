@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { AppLayout } from '@/components/AppLayout';
-import { useAuth } from '@/hooks/useAuth';
-import { useLabourAssignments } from '@/hooks/useLabourAssignments';
-import { useUpdateLabourClaim } from '@/hooks/useUpdateLabourClaim';
+import { AppLayout } from '@/layouts/AppLayout';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useLabourAssignments } from '@/features/work/hooks/useLabourAssignments';
+import { useUpdateLabourClaim } from '@/features/work/hooks/useUpdateLabourClaim';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Wallet, TrendingUp, CheckCircle2 } from 'lucide-react';
-import { useLabourFinancials } from '@/hooks/useLabourFinancials';
+import { useLabourFinancials } from '@/features/workforce/hooks/useLabourFinancials';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn } from '@/features/shared/utils/utils';
 import { useState, useEffect } from 'react';
 /**
  * Labour dashboard v2 allows a labourer to view assigned work,

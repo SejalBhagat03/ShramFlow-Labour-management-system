@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { AppLayout } from "@/components/AppLayout";
-import { useDailyLogs, useDailyLogCounts } from "@/hooks/useDailyLogs";
+import { AppLayout } from "@/layouts/AppLayout";
+import { useDailyLogs, useDailyLogCounts } from "@/features/work/hooks/useDailyLogs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,13 +40,14 @@ import {
     ClipboardCheck,
     Camera,
     Briefcase,
-    IndianRupee
+    IndianRupee,
+    Users
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/features/shared/utils/utils";
 import { format, addDays, subDays, isSameDay } from "date-fns";
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 
 const DailyLogs = () => {
     const { t, i18n } = useTranslation();
@@ -223,10 +224,10 @@ const DailyLogs = () => {
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Attendance Hub</span>
+
                             </div>
                             <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t('dailyLogs')}</h1>
-                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Record and track daily work and attendance</p>
+                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">Record and track daily site activity</p>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Button variant="outline" className="py-2.5 px-4 rounded-xl bg-background/50 backdrop-blur-sm border-2 w-full sm:w-auto text-sm h-auto">

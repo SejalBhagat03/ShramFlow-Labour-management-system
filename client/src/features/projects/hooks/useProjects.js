@@ -1,0 +1,54 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useToast } from '@/features/shared/hooks/use-toast';
+import { projectService } from '@/features/projects/services/projectService';
+import { offlineSyncService } from '@/features/work/services/offlineSyncService';
+
+export const useProjects = () => {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+
+    const { data: projects = [], isLoading, error } = useQuery({
+        queryKey: ['projects', user?.id, user?.organization_id],
+        queryFn: async () => {
+            if (!user) return [];
+            
+            try {
+                const data = await projectService.getProjects();
+                
+                // Cache for offline use
+                await offlineSyncService.cacheMetadata('projects', data);
+                return data;
+            } catch (err) {
+                // If offline, try to get from cache
+                if (!navigator.onLine) {
+                    const cached = await offlineSyncService.getCachedMetadata('projects');
+                    if (cached) {
+                        return cached;
+                    }
+                }
+                throw err;
+            }
+        },
+        enabled: !!user
+    });
+
+    const createProject = useMutation({
+        mutationFn: (data) => projectService.createProject(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['projects'] });
+            toast({ title: "Project Created", description: "New project added successfully." });
+        },
+        onError: (error) => {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
+    });
+
+    return {
+        projects,
+        isLoading,
+        error,
+        createProject
+    };
+};

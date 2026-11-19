@@ -4,19 +4,20 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useToast } from '@/features/shared/hooks/use-toast';
 import { offlineSyncService } from '@/features/work/services/offlineSyncService';
 
-export const useLabourers = () => {
+export const useLabourers = ({ page = 1, limit = 10, search = '' } = {}) => {
     const { user, session } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    const { data: labourers = [], isLoading, error } = useQuery({
-        queryKey: ['labourers', user?.id],
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['labourers', user?.id, page, limit, search],
         queryFn: async () => {
-            if (!user) return [];
-            if (user.role !== 'supervisor') return [];
+            if (!user) return { data: [], pagination: {} };
+            if (user.role !== 'supervisor') return { data: [], pagination: {} };
 
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers`, {
+                const params = new URLSearchParams({ page, limit, search });
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers?${params}`, {
                     headers: {
                         'Authorization': `Bearer ${session?.access_token}`
                     }
@@ -26,22 +27,28 @@ export const useLabourers = () => {
                     throw new Error('Failed to fetch labourers from backend');
                 }
 
-                const data = await response.json();
+                const result = await response.json();
+                const labourersData = result.data || result; // Extract data from wrapper if exists
                 
-                // Cache for offline use
-                await offlineSyncService.cacheMetadata('labourers', data);
-                return data;
+                // Cache for offline use (only cache first page for simplicity)
+                if (page === 1 && !search) {
+                    await offlineSyncService.cacheMetadata('labourers', labourersData);
+                }
+                return result;
             } catch (err) {
                 // If offline, try to get from cache
                 if (!navigator.onLine) {
                     const cached = await offlineSyncService.getCachedMetadata('labourers');
-                    if (cached) return cached;
+                    if (cached) return { data: cached, pagination: { total: cached.length, page: 1, limit: cached.length, totalPages: 1 } };
                 }
                 throw err;
             }
         },
         enabled: !!user && !!session
     });
+
+    const labourers = Array.isArray(data) ? data : (data?.data || []);
+    const pagination = data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 };
 
     const createLabourer = useMutation({
         mutationFn: async (formData) => {
@@ -208,7 +215,20 @@ export const useLabourers = () => {
         }
     });
 
-    const getLabourBalance = (id) => useQuery({
+    return {
+        labourers,
+        pagination,
+        isLoading,
+        error,
+        createLabourer,
+        updateLabourer,
+        deleteLabourer
+    };
+};
+
+export const useLabourBalance = (id) => {
+    const { session } = useAuth();
+    return useQuery({
         queryKey: ['labour_balance', id],
         queryFn: async () => {
             const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/balance`, {
@@ -219,8 +239,11 @@ export const useLabourers = () => {
         },
         enabled: !!id && !!session
     });
+};
 
-    const getLabourStats = (id) => useQuery({
+export const useLabourStats = (id) => {
+    const { session } = useAuth();
+    return useQuery({
         queryKey: ['labour_stats', id],
         queryFn: async () => {
             const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/labourers/${id}/stats`, {
@@ -231,15 +254,4 @@ export const useLabourers = () => {
         },
         enabled: !!id && !!session
     });
-
-    return {
-        labourers,
-        isLoading,
-        error,
-        createLabourer,
-        updateLabourer,
-        deleteLabourer,
-        getLabourBalance,
-        getLabourStats
-    };
 };

@@ -12,23 +12,23 @@ export const workService = {
      * @param {string} labourerId
      * @returns {Promise<WorkEntry[]>}
      */
-    async getWorkEntries(labourerId, organizationId) {
+    async getWorkEntries(labourerId, organizationId, page = 1, limit = 10, status, search = '') {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
 
         if (!token) {
             if (import.meta.env.DEV) console.warn("No auth token available");
-            return [];
+            return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
         }
 
         let url = `${API_BASE}/api/work`;
-        const params = [];
-        if (labourerId && labourerId !== 'undefined') params.push(`labourer_id=${labourerId}`);
-        if (organizationId) params.push(`organization_id=${organizationId}`);
+        const params = new URLSearchParams({ page, limit });
+        if (labourerId && labourerId !== 'undefined') params.append('labourer_id', labourerId);
+        if (organizationId) params.append('organization_id', organizationId);
+        if (status) params.append('status', status);
+        if (search) params.append('search', search);
         
-        if (params.length > 0) {
-            url += `?${params.join('&')}`;
-        }
+        url += `?${params.toString()}`;
 
         const response = await fetch(url, {
             headers: {
@@ -42,14 +42,14 @@ export const workService = {
             if (import.meta.env.DEV) console.error('[WorkService] Fetch failed:', errorData);
             throw new Error(errorData.error || errorData.message || 'Failed to fetch work entries');
         }
-        const data = await response.json();
+        
+        const result = await response.json();
+        const entries = Array.isArray(result) ? result : (result.data || []);
+        const pagination = result.pagination || { total: entries.length, page, limit, totalPages: 1 };
 
-        // Filtering by labourerId if backend doesn't handle query param yet
-        const filtered = (labourerId && labourerId !== 'undefined')
-            ? data.filter(e => e.labourer_id === labourerId)
-            : data;
+        const mappedEntries = entries.map(entry => new WorkEntry(entry));
 
-        return filtered.map(entry => new WorkEntry(entry));
+        return { data: mappedEntries, pagination };
     },
 
     /**
@@ -180,34 +180,53 @@ export const workService = {
     },
 
     /**
-     * Fetch pending acknowledgments
+     * Fetch pending acknowledgments (Proxied via Backend)
      * @param {string} labourerId
      * @returns {Promise<any[]>}
      */
     async getPendingAcknowledgments(labourerId) {
-        const { data, error } = await supabase
-            .from('work_acknowledgments')
-            .select('*, work_entries(*)')
-            .eq('labourer_id', labourerId)
-            .eq('status', 'pending');
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
 
-        if (error) throw error;
-        return data;
+        const response = await fetch(`${API_BASE}/api/work/acknowledgments?labourerId=${labourerId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch acknowledgments');
+        }
+
+        return await response.json();
     },
 
     /**
-     * Ackowledge (Confirm/Dispute) a work entry
+     * Acknowledge (Confirm/Dispute) a work entry (Proxied via Backend)
      * @param {string} ackId
      * @param {string} status
      * @param {string} [notes]
      */
     async acknowledgeWork(ackId, status, notes) {
-        const { error } = await supabase
-            .from('work_acknowledgments')
-            .update({ status, notes, responded_at: new Date().toISOString() })
-            .eq('id', ackId);
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
 
-        if (error) throw error;
+        const response = await fetch(`${API_BASE}/api/work/acknowledgments/${ackId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status, notes })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to acknowledge work');
+        }
+
+        return await response.json();
     },
 
     /**

@@ -70,16 +70,21 @@ const AuditLog = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-8 animate-fade-in pb-12">
+                {/* 🎯 Premium Header */}
+                <div className="premium-header relative">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Terminal className="h-4 w-4 text-emerald-600" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Governance</span>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-500/10 text-slate-700 text-[10px] font-black uppercase tracking-widest mb-3 border border-slate-200/50 backdrop-blur-md">
+                            <Terminal className="h-3 w-3" />
+                            System Governance
                         </div>
-                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Audit Trail</h1>
-                        <p className="text-sm text-slate-500 font-medium">Monitoring sensitive operations and administrative changes.</p>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
+                            Audit <span className="text-slate-500">Trail</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-3 flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                            Monitoring sensitive operations and administrative changes.
+                        </p>
                     </div>
                 </div>
 
@@ -115,22 +120,22 @@ const AuditLog = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="glass-strong rounded-[2.5rem] border border-white/40 shadow-soft overflow-hidden">
                     <div className="overflow-x-auto">
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center p-20 gap-4">
-                                <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Decrypting Logs...</p>
+                                <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Decrypting Logs...</p>
                             </div>
                         ) : logs?.length > 0 ? (
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-slate-50 border-slate-100 hover:bg-slate-50">
+                                    <TableRow className="bg-slate-50/50 border-slate-100 hover:bg-slate-50">
                                         <TableHead className="py-5 pl-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Timestamp</TableHead>
                                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Identity</TableHead>
                                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Operation</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resource Type</TableHead>
-                                        <TableHead className="pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Target ID</TableHead>
+                                        <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-widest text-slate-400">Resource Type</TableHead>
+                                        <TableHead className="hidden lg:table-cell pr-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Target ID</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -154,13 +159,14 @@ const AuditLog = () => {
                                             </TableCell>
                                             <TableCell>
                                                 {getActionBadge(log.action)}
+                                                <p className="md:hidden text-[10px] font-medium text-slate-400 mt-1 uppercase">{log.entity_type}</p>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="hidden md:table-cell">
                                                 <span className="font-black text-[10px] text-slate-400 uppercase tracking-tighter">
                                                     {log.entity_type}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="pr-8">
+                                            <TableCell className="hidden lg:table-cell pr-8">
                                                 <span className="font-mono text-[10px] font-bold text-slate-500 group-hover:text-emerald-600 transition-colors">
                                                     {log.entity_id ? `${log.entity_id.substring(0, 8)}...` : 'N/A'}
                                                 </span>

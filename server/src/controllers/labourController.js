@@ -9,14 +9,35 @@ exports.getAllLabourers = async (req, res, next) => {
             return res.status(403).json({ error: 'Invalid organization context' });
         }
 
-        const { data, error } = await supabase
+        const { page = 1, limit = 10, search = '' } = req.query;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        let query = supabase
             .from('labourers')
-            .select('*')
+            .select('*', { count: 'exact' })
             .eq('organization_id', req.orgId)
-            .eq('is_deleted', false);
+            .eq('is_deleted', false)
+            .order('name', { ascending: true })
+            .range(from, to);
+
+        if (search) {
+            query = query.ilike('name', `%${search}%`);
+        }
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
-        res.json(data);
+        
+        res.json({
+            data,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }

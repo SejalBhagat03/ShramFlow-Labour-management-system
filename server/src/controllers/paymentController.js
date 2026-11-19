@@ -162,11 +162,12 @@ exports.createManualPayment = async (req, res, next) => {
 
 /**
  * autoSettlePayments
- * Groups approved entries by labourer and project, creates a payment record, and marks entries as paid.
+ * Optimized for safety and detailed reporting.
  */
 exports.autoSettlePayments = async (req, res, next) => {
     try {
         const { project_id, global = false, method = 'cash' } = req.body;
+        const SETTLEMENT_CEILING = 15000; // Safety limit for auto-settlement per person
 
         // 1. Fetch approved work entries that aren't paid yet
         let query = supabase
@@ -174,12 +175,11 @@ exports.autoSettlePayments = async (req, res, next) => {
             .select('*')
             .eq('organization_id', req.orgId)
             .eq('status', 'approved')
-            .is('payment_id', null);
+            .is('payment_id', null)
+            .eq('is_deleted', false);
 
         if (!global && project_id) {
             query = query.eq('project_id', project_id);
-        } else if (!global && !project_id) {
-            return res.status(400).json({ error: 'project_id required for project-based settlement' });
         }
 
         const { data: entries, error: fetchError } = await query;
@@ -188,14 +188,16 @@ exports.autoSettlePayments = async (req, res, next) => {
             return res.status(200).json({ message: 'No pending entries to settle', count: 0 });
         }
 
-        // 2. Group by labourer
+        // 2. Group by labourer with statistical summary
         const labourerGroups = {};
         entries.forEach(e => {
             if (!labourerGroups[e.labourer_id]) {
                 labourerGroups[e.labourer_id] = {
                     total: 0,
                     entryIds: [],
-                    projectIds: new Set()
+                    projectIds: new Set(),
+                    skipped: false,
+                    reason: null
                 };
             }
             labourerGroups[e.labourer_id].total += (Number(e.amount) || 0);
@@ -203,16 +205,29 @@ exports.autoSettlePayments = async (req, res, next) => {
             if (e.project_id) labourerGroups[e.labourer_id].projectIds.add(e.project_id);
         });
 
-        // 3. Process each group
-        const results = [];
+        // 3. Process each group with safety guardrails
+        const settled = [];
+        const flagged = [];
+
         for (const [labourerId, group] of Object.entries(labourerGroups)) {
+            // Safety Check: Avoid auto-paying unusually high amounts without manual verification
+            if (group.total > SETTLEMENT_CEILING) {
+                flagged.push({ 
+                    labourerId, 
+                    amount: group.total, 
+                    reason: 'EXCEEDS_AUTO_SETTLE_CEILING',
+                    entryCount: group.entryIds.length 
+                });
+                continue;
+            }
+
             // Create payment record
             const { data: payment, error: pError } = await supabase
                 .from('payments')
                 .insert({
                     organization_id: req.orgId,
                     labourer_id: labourerId,
-                    project_id: global ? null : Array.from(group.projectIds)[0], // Use major project if global
+                    project_id: Array.from(group.projectIds)[0] || null,
                     amount: group.total,
                     method,
                     status: 'paid',
@@ -224,29 +239,31 @@ exports.autoSettlePayments = async (req, res, next) => {
 
             if (pError) {
                 console.error(`[AutoSettle] Failed for labourer ${labourerId}:`, pError);
+                flagged.push({ labourerId, amount: group.total, reason: 'DATABASE_ERROR' });
                 continue;
             }
 
-            // Update work entries with payment_id and status
+            // Update work entries as paid
             await supabase
                 .from('work_entries')
-                .update({ 
-                    payment_id: payment.id,
-                    status: 'paid'
-                })
+                .update({ payment_id: payment.id, status: 'paid' })
                 .in('id', group.entryIds);
 
-            results.push({ labourerId, amount: group.total, payment_id: payment.id });
+            settled.push({ labourerId, amount: group.total, payment_id: payment.id });
         }
 
         res.json({
             success: true,
-            settled_count: results.length,
-            total_entries: entries.length,
-            details: results
+            summary: {
+                total_entries_processed: entries.length,
+                labourers_settled: settled.length,
+                labourers_flagged: flagged.length,
+                total_amount_settled: settled.reduce((sum, s) => sum + s.amount, 0)
+            },
+            details: { settled, flagged }
         });
     } catch (error) {
-        console.error('[AutoSettle] Controller Error:', error);
+        console.error('[AutoSettle] Enhanced Controller Error:', error);
         next(error);
     }
 };

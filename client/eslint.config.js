@@ -1,22 +1,23 @@
-import js from "@eslint/js";
-import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
   {
     ignores: [
-      "dist/**",
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "public/**",
-      "supabase/**"
-    ]
+      'dist/**',
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'public/**',
+      'supabase/**',
+      'dev-dist/**',
+    ],
   },
   {
-    files: ["**/*.{js,jsx}"],
+    files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: {
@@ -31,17 +32,17 @@ export default [
       },
     },
     plugins: {
-      "react-hooks": reactHooks,
-      "react-refresh": reactRefresh,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
     },
     rules: {
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": "off",
-      "no-unused-vars": "off",
-      "react/prop-types": "off",
-      "no-undef": "error",
-      "no-useless-catch": "off",
+      'react-refresh/only-export-components': 'off',
+      'no-unused-vars': 'off',
+      'react/prop-types': 'off',
+      'no-undef': 'error',
+      'no-useless-catch': 'off',
     },
   },
 ];

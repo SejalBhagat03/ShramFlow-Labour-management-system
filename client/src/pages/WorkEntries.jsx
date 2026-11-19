@@ -30,7 +30,10 @@ import {
     LayoutGrid,
     Trash2,
     Users,
-    IndianRupee
+    IndianRupee,
+    ShieldCheck,
+    ShieldAlert,
+    Zap
 } from 'lucide-react';
 import { cn } from '@/features/shared/utils/utils';
 import { useNavigate } from 'react-router-dom';
@@ -38,24 +41,43 @@ import { projectService } from '@/features/projects/services/projectService';
 import { useQuery } from '@tanstack/react-query';
 import { useFocusProject } from '@/features/projects/hooks/useFocusProject';
 import { WorkEntryModal } from '@/features/work/components/WorkEntryModal';
+import { Pagination } from '@/features/shared/components/Pagination';
 
 const WorkEntries = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]);
+
     const { 
         workEntries, 
+        pagination,
         isLoading, 
         createWorkEntry, 
         approveWorkEntry, 
         approveBulkWorkEntries, 
         deleteWorkEntry 
-    } = useWorkEntries();
+    } = useWorkEntries(undefined, { 
+        page, 
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search
+    });
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        setPage(1);
+    };
+
+    const handleStatusFilter = (val) => {
+        setStatusFilter(val);
+        setPage(1);
+    };
     
     const { labourers } = useLabourers();
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [selectedIds, setSelectedIds] = useState([]);
 
     const { data: projects = [] } = useQuery({
         queryKey: ['projects'],
@@ -64,20 +86,10 @@ const WorkEntries = () => {
 
     const { focusProjectId } = useFocusProject();
 
-    const filteredEntries = workEntries.filter((entry) => {
-        const labourerName = (entry.getLabourerName?.() || 'Unknown').toLowerCase();
-        const taskType = (entry.task_type || 'General').toLowerCase();
-        const matchesSearch =
-            labourerName.includes(search.toLowerCase()) ||
-            taskType.includes(search.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || entry.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
-
     const stats = {
-        totalAmount: filteredEntries.reduce((sum, e) => sum + Number(e.amount), 0),
-        pendingCount: filteredEntries.filter(e => e.status === 'submitted' || e.status === 'pending').length,
-        totalEntries: filteredEntries.length
+        totalAmount: (workEntries || []).reduce((sum, e) => sum + Number(e.amount), 0),
+        pendingCount: (workEntries || []).filter(e => e.status === 'submitted' || e.status === 'pending').length,
+        totalEntries: pagination?.total || (workEntries?.length || 0)
     };
 
     const StatusPill = ({ status }) => {
@@ -107,23 +119,40 @@ const WorkEntries = () => {
     };
 
     const toggleSelectAll = () => {
-        if (selectedIds.length === filteredEntries.length) {
+        if (selectedIds.length === workEntries.length) {
             setSelectedIds([]);
         } else {
-            setSelectedIds(filteredEntries.map(e => e.id));
+            setSelectedIds(workEntries.map(e => e.id));
         }
     };
 
-    const handleBulkApprove = async () => {
-        if (selectedIds.length === 0) return;
+    const handleBulkApprove = async (idsToApprove) => {
+        const ids = idsToApprove || selectedIds;
+        if (ids.length === 0) return;
         try {
-            await approveBulkWorkEntries.mutateAsync(selectedIds);
+            await approveBulkWorkEntries.mutateAsync(ids);
             setSelectedIds([]);
         } catch (err) {
             console.error("Bulk approval failed", err);
             const errorMessage = err.response?.data?.message || err.message || "Failed to approve work entries";
             const errorDetails = err.response?.data?.details || "";
             toast.error(`${errorMessage} ${errorDetails}`);
+        }
+    };
+
+    const handleApproveVerified = async () => {
+        const cleanIds = workEntries
+            .filter(e => (e.status === 'submitted' || e.status === 'pending') && !e.is_anomaly)
+            .map(e => e.id);
+        
+        if (cleanIds.length === 0) {
+            toast.info("No verified pending entries found.");
+            return;
+        }
+
+        if (window.confirm(`This will approve ${cleanIds.length} verified work entries. Continue?`)) {
+            await handleBulkApprove(cleanIds);
+            toast.success(`Successfully approved ${cleanIds.length} verified entries.`);
         }
     };
 
@@ -140,24 +169,43 @@ const WorkEntries = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Work Entries</h1>
-                        <p className="text-sm text-muted-foreground mt-1">Record and approve labour activities across sites.</p>
+            <div className="space-y-8 pb-12 animate-fade-in">
+                {/* 🎯 Premium Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
+                    <div className="relative z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-black uppercase tracking-widest mb-3 border border-blue-200/50 backdrop-blur-md animate-slide-down">
+                            <LayoutGrid className="h-3 w-3" />
+                            Work Intelligence System
+                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
+                            Work <span className="text-blue-600">Records</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-3 flex items-center gap-2">
+                            <ClipboardPlus className="h-4 w-4 text-blue-500" />
+                            {pagination.total || 0} Total Activities Logged • All Sites
+                        </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    
+                    <div className="flex items-center gap-3 animate-slide-up">
+                        <Button
+                            variant="ghost"
+                            className="hidden lg:flex rounded-2xl h-11 px-4 font-black text-[10px] uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all border border-emerald-100"
+                            onClick={handleApproveVerified}
+                            disabled={approveBulkWorkEntries.isPending || !workEntries.some(e => (e.status === 'submitted' || e.status === 'pending') && !e.is_anomaly)}
+                        >
+                            <ShieldCheck className="h-4 w-4 mr-2" />
+                            Approve Verified
+                        </Button>
                         <Button
                             variant="outline"
-                            className="rounded-xl h-10 px-4 font-bold border-border hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                            className="rounded-2xl h-11 px-6 font-black text-[10px] uppercase tracking-widest border-slate-200 hover:bg-slate-50 shadow-sm active:scale-95 transition-all"
                             onClick={() => setIsAddModalOpen(true)}
                         >
-                            <ClipboardPlus className="h-4 w-4 mr-2" />
+                            <ClipboardPlus className="h-4 w-4 mr-2 text-blue-600" />
                             Single Entry
                         </Button>
                         <Button
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-6 rounded-xl"
+                            className="bg-slate-900 hover:bg-slate-800 text-white font-black h-11 px-6 rounded-2xl shadow-lg active:scale-95 transition-all text-[10px] uppercase tracking-widest"
                             onClick={() => navigate('/work-entries/group')}
                         >
                             <Users className="h-4 w-4 mr-2" />
@@ -167,36 +215,37 @@ const WorkEntries = () => {
                 </div>
 
                 {/* Filters and Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-slide-up">
                     <div className="md:col-span-3 flex flex-col md:flex-row gap-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <div className="relative flex-1 group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                             <Input
                                 placeholder="Search by name or task..."
-                                className="pl-10 h-10 bg-white border-border rounded-xl text-sm"
+                                className="pl-12 h-12 bg-white border-slate-100 rounded-[1.25rem] text-sm font-medium shadow-soft focus:border-blue-500 focus:ring-blue-500/10 transition-all"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={handleSearch}
                             />
                         </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full md:w-48 h-10 bg-white border-border rounded-xl text-xs font-medium">
-                                <SelectValue placeholder="All Status" />
+                        <Select value={statusFilter} onValueChange={handleStatusFilter}>
+                            <SelectTrigger className="w-full md:w-56 h-12 bg-white border-slate-100 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest shadow-soft">
+                                <SelectValue placeholder="Status Filter" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="submitted">Submitted</SelectItem>
-                                <SelectItem value="approved">Approved</SelectItem>
-                                <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                                <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest">All Records</SelectItem>
+                                <SelectItem value="submitted" className="text-[10px] font-black uppercase tracking-widest text-blue-600">Submitted</SelectItem>
+                                <SelectItem value="approved" className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Approved</SelectItem>
+                                <SelectItem value="rejected" className="text-[10px] font-black uppercase tracking-widest text-rose-600">Rejected</SelectItem>
+                                <SelectItem value="paid" className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Paid</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-border flex items-center gap-3 shadow-sm">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                            <IndianRupee className="h-5 w-5" />
+                    <div className="glass-strong p-6 rounded-[1.5rem] border-l-4 border-l-emerald-500 flex items-center gap-4 shadow-soft">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                            <IndianRupee className="h-6 w-6" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Value</p>
-                            <p className="text-sm font-bold text-foreground">₹{stats.totalAmount.toLocaleString()}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Page Value</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tight">₹{stats.totalAmount.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>
@@ -206,7 +255,7 @@ const WorkEntries = () => {
                     <div className="bg-emerald-600 p-4 rounded-2xl shadow-lg text-white flex items-center justify-between animate-in slide-in-from-top-5 duration-300">
                         <div className="flex items-center gap-4">
                             <Checkbox 
-                                checked={selectedIds.length === filteredEntries.length} 
+                                checked={selectedIds.length === workEntries.length} 
                                 onCheckedChange={toggleSelectAll}
                                 className="border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600"
                             />
@@ -238,7 +287,7 @@ const WorkEntries = () => {
                             <TableRow className="bg-muted/30 border-border hover:bg-muted/30">
                                 <TableHead className="w-12 pl-6">
                                     <Checkbox 
-                                        checked={selectedIds.length === filteredEntries.length && filteredEntries.length > 0} 
+                                        checked={selectedIds.length === workEntries.length && workEntries.length > 0} 
                                         onCheckedChange={toggleSelectAll}
                                         className="border-muted-foreground/30"
                                     />
@@ -255,7 +304,7 @@ const WorkEntries = () => {
                                 [1, 2, 3].map(i => (
                                     <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-12 w-full rounded-lg" /></TableCell></TableRow>
                                 ))
-                            ) : filteredEntries.length === 0 ? (
+                            ) : workEntries.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={6} className="py-20 text-center">
                                         <LayoutGrid className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-20" />
@@ -264,7 +313,7 @@ const WorkEntries = () => {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredEntries.map((entry) => (
+                                workEntries.map((entry) => (
                                     <TableRow key={entry.id} className="border-border hover:bg-muted/10">
                                         <TableCell className="pl-6">
                                             <Checkbox 
@@ -289,7 +338,19 @@ const WorkEntries = () => {
                                             <span className="font-bold text-sm text-foreground">₹{entry.amount.toLocaleString()}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <StatusPill status={entry.status} />
+                                            <div className="flex items-center gap-2">
+                                                <StatusPill status={entry.status} />
+                                                {entry.is_anomaly ? (
+                                                    <div className="flex items-center gap-1 text-rose-500 animate-pulse" title={entry.anomaly_reason}>
+                                                        <ShieldAlert className="h-4 w-4" />
+                                                        <span className="text-[8px] font-black uppercase tracking-tighter">Flagged</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1 text-emerald-500/50" title="Verified by AI Engine">
+                                                        <ShieldCheck className="h-3 w-3" />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="pr-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -319,6 +380,13 @@ const WorkEntries = () => {
                         </TableBody>
                     </Table>
                 </div>
+
+                <Pagination 
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    onPageChange={setPage}
+                    isLoading={isLoading}
+                />
 
                 <WorkEntryModal 
                     isOpen={isAddModalOpen} 

@@ -38,47 +38,33 @@ exports.protect = async (req, res, next) => {
         // Attach user
         req.user = user;
         
-        // 3. Resolve Organization ID (DB -> Metadata -> Query -> Header)
-        let orgId = profile?.organization_id || 
-                      user.user_metadata?.organization_id || 
-                      req.query.organization_id || 
-                      req.headers['x-organization-id'];
+        // 3. Resolve Organization ID (Deterministic & Secure)
+        const userRole = user.user_metadata?.role || profile?.role;
+        let orgId = profile?.organization_id || user.user_metadata?.organization_id;
 
-        // 4. Fallback for Supervisors/Admins if still no orgId
-        if (!orgId || orgId === 'null') {
-            const { data: roleData, error: roleErr } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', user.id)
-                .eq('role', 'supervisor') // Only check for supervisor to avoid enum error
-                .maybeSingle();
-
-            if (roleErr) console.error('[AuthMiddleware] Role check error:', roleErr.message);
-
-            if (roleData) {
-                const { data: firstOrg, error: orgErr } = await supabase
-                    .from('organizations')
-                    .select('id')
-                    .order('created_at', { ascending: true })
-                    .limit(1)
-                    .maybeSingle();
-                
-                if (orgErr) console.error('[AuthMiddleware] Org fetch error:', orgErr.message);
-
-                if (firstOrg) {
-                    orgId = firstOrg.id;
-                } else {
-                    console.warn('[AuthMiddleware] Fallback FAILED: No organizations found');
-                }
+        // Logic: ONLY superadmins can override the organization context via headers
+        if (userRole === 'superadmin') {
+            const requestedOrgId = req.headers['x-organization-id'] || req.query.organization_id;
+            if (requestedOrgId) {
+                orgId = requestedOrgId;
             }
         }
 
-        if (!orgId) {
-            console.warn('[AuthMiddleware] Final organization_id is NULL');
-            req.orgId = null;
-        } else {
-            req.orgId = orgId;
+        // 4. Verification Check
+        if (!orgId || orgId === 'null' || orgId === 'undefined') {
+            // Last resort for legacy/migration: Try to find any associated organization
+            const { data: fallbackOrg } = await supabase
+                .from('organizations')
+                .select('id')
+                .order('created_at', { ascending: true })
+                .limit(1)
+                .maybeSingle();
+            
+            orgId = fallbackOrg?.id || null;
         }
+
+        req.orgId = orgId;
+        req.userRole = userRole; // Bonus: Attach role for downstream logic
 
         next();
     } catch (error) {
@@ -95,8 +81,13 @@ exports.protect = async (req, res, next) => {
 exports.authorize = (roles) => {
     return async (req, res, next) => {
         try {
-            // First check user metadata for role to avoid DB hit if possible or if DB is slow
+            // ALWAYS ALLOW SUPERADMIN
             const metadataRole = req.user.user_metadata?.role;
+            if (metadataRole === 'superadmin') {
+                return next();
+            }
+
+            // First check user metadata for role to avoid DB hit if possible or if DB is slow
             if (roles.includes(metadataRole)) {
                 return next();
             }

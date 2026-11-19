@@ -21,6 +21,8 @@ export class WorkEntry {
     this.is_deleted = data.is_deleted || false;
     this.labourer = data.labourer;
     this.project = data.project;
+    this.is_anomaly = data.is_anomaly || false;
+    this.anomaly_reason = data.anomaly_reason || null;
   }
 
   /**

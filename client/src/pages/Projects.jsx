@@ -159,16 +159,25 @@ const Projects = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-8 animate-fade-in pb-12">
+                {/* 🎯 Premium Header */}
+                <div className="premium-header relative">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Projects</h1>
-                        <p className="text-sm text-muted-foreground mt-1">Manage construction sites and budgets</p>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-black uppercase tracking-widest mb-3 border border-emerald-200/50 backdrop-blur-md">
+                            <Target className="h-3 w-3" />
+                            Site Management
+                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
+                            Active <span className="text-emerald-600">Projects</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-3 flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-emerald-500" />
+                            Track construction sites, budgets, and delivery targets.
+                        </p>
                     </div>
                     <Button 
                         onClick={() => setIsAddModalOpen(true)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-6 rounded-xl"
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-black h-11 px-6 rounded-2xl shadow-lg active:scale-95 transition-all text-[10px] uppercase tracking-widest"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         New Project
@@ -176,25 +185,25 @@ const Projects = () => {
                 </div>
 
                 {/* Filters */}
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative max-w-md animate-slide-up">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                         placeholder="Search projects..."
-                        className="pl-10 h-10 bg-white border-border rounded-xl text-sm"
+                        className="pl-10 h-11 bg-white border-slate-200 rounded-2xl text-sm font-medium shadow-sm"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
 
                 {/* Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 animate-slide-up">
                     {isLoading ? (
-                        [1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-white border border-border animate-pulse rounded-2xl" />)
+                        [1, 2, 3, 4].map(i => <div key={i} className="h-48 glass-strong animate-pulse rounded-[2rem]" />)
                     ) : filteredProjects.length === 0 ? (
-                        <div className="col-span-full py-20 text-center bg-white border-2 border-dashed border-border rounded-2xl">
-                            <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                            <h3 className="text-lg font-bold text-foreground">No projects found</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Try starting a new project above.</p>
+                        <div className="col-span-full py-20 text-center glass-strong border-2 border-dashed border-slate-200 rounded-[2.5rem]">
+                            <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4 opacity-50" />
+                            <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">No projects found</h3>
+                            <p className="text-sm text-slate-400 font-medium mt-2">Try starting a new project above.</p>
                         </div>
                     ) : (
                         filteredProjects.map((project) => {

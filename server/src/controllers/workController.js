@@ -9,14 +9,42 @@ exports.getAllWorkEntries = async (req, res, next) => {
             return res.status(403).json({ error: 'Invalid organization context' });
         }
 
-        const { data, error } = await supabase
+        const { page = 1, limit = 10, status, search = '' } = req.query;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        let query = supabase
             .from('work_entries')
-            .select('*, labourer:labourers(*), project:projects(*)')
+            .select('*, labourer:labourers(*), project:projects(*)', { count: 'exact' })
             .eq('organization_id', req.orgId)
-            .eq('is_deleted', false);
+            .eq('is_deleted', false)
+            .order('date', { ascending: false });
+
+        if (status) {
+            query = query.eq('status', status);
+        }
+
+        if (search) {
+            // Complex search across joined table might need ilike on labourer.name
+            // But since we are using Supabase JS client, we might need to filter by labourer name differently
+            // if we want to do it in one query.
+            // Simplified: Search in task_type or description for now.
+            query = query.or(`task_type.ilike.%${search}%,description.ilike.%${search}%`);
+        }
+
+        const { data, error, count } = await query.range(from, to);
 
         if (error) throw error;
-        res.json(data);
+        
+        res.json({
+            data,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }
@@ -24,15 +52,15 @@ exports.getAllWorkEntries = async (req, res, next) => {
 
 /**
  * detectAnomalies
- * Checks for suspicious record-keeping patterns
+ * Replaces basic thresholds with statistical analysis and concurrency checks.
  */
 const detectAnomalies = async (entry, orgId) => {
     let flags = [];
-    const { labourer_id, project_id, date, amount, meters, work_done } = entry;
+    const { labourer_id, project_id, date, meters, work_done } = entry;
     const workValue = Number(work_done || meters || 0);
 
     try {
-        // 1. PROJECT TARGET CHECK (Critical)
+        // 1. PROJECT TARGET CHECK
         if (project_id) {
             const { data: project } = await supabase
                 .from('projects')
@@ -47,39 +75,60 @@ const detectAnomalies = async (entry, orgId) => {
             }
         }
 
-        // 2. DAILY PERFORMANCE LIMIT (15m Threshold)
-        if (workValue > 15) {
-            flags.push('HIGH_DAILY_WORK');
+        // 2. CONCURRENCY CHECK (Same worker, same date, multiple projects)
+        const { data: sameDayEntries } = await supabase
+            .from('work_entries')
+            .select('project_id, work_done, meters')
+            .eq('labourer_id', labourer_id)
+            .eq('date', date)
+            .eq('is_deleted', false);
+
+        if (sameDayEntries && sameDayEntries.length > 0) {
+            const totalWorkToday = sameDayEntries.reduce((sum, e) => sum + Number(e.work_done || e.meters || 0), 0) + workValue;
+            
+            // Logic: A single human typically can't exceed 20 units of work alone in a day
+            if (totalWorkToday > 20) {
+                flags.push('IMPROBABLE_DAILY_TOTAL');
+            }
+            
+            // Logic: Working on more than 2 projects in a single day is a logistics anomaly
+            const projectCount = new Set([...sameDayEntries.map(e => e.project_id), project_id]).size;
+            if (projectCount > 2) {
+                flags.push('LOGISTICS_ANOMALY');
+            }
         }
 
-        // 3. SMARTER HISTORICAL ANOMALY (1.5x Average)
+        // 3. STATISTICAL ANOMALY (Z-Score Logic)
         const { data: history } = await supabase
             .from('work_entries')
             .select('work_done, meters')
             .eq('labourer_id', labourer_id)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(20);
 
-        if (history && history.length >= 3) {
-            const avg = history.reduce((acc, curr) => acc + Number(curr.work_done || curr.meters || 0), 0) / history.length;
-            if (workValue > avg * 1.5 && avg > 0) {
-                flags.push('ANOMALY_VS_AVERAGE');
+        if (history && history.length >= 5) {
+            const values = history.map(h => Number(h.work_done || h.meters || 0));
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const stdDev = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / values.length);
+            
+            // Logic: If work is > 2 Standard Deviations from mean, it's a statistical outlier
+            if (stdDev > 0) {
+                const zScore = (workValue - mean) / stdDev;
+                if (zScore > 2.5) flags.push('STATISTICAL_OUTLIER_HIGH');
+            } else if (workValue > mean * 2 && mean > 0) {
+                flags.push('ANOMALY_VS_CONSISTENCY');
             }
         }
 
         // 4. DUPLICATE CHECK
-        const { data: duplicates } = await supabase
-            .from('work_entries')
-            .select('id')
-            .eq('labourer_id', labourer_id)
-            .eq('date', date)
-            .eq('is_deleted', false);
+        const isDuplicate = sameDayEntries?.some(e => 
+            e.project_id === project_id && 
+            Number(e.work_done || e.meters) === workValue
+        );
+        if (isDuplicate) flags.push('DUPLICATE_ENTRY');
 
-        if (duplicates && duplicates.length > 0) {
-            flags.push('DUPLICATE_ENTRY');
-        }
     } catch (e) {
-        console.warn('[AnomalyDetection] Utility failed:', e.message);
+        console.warn('[AnomalyDetection] Advanced Engine failed:', e.message);
     }
 
     return flags;
@@ -155,38 +204,45 @@ exports.createWorkEntry = async (req, res, next) => {
 
 /**
  * bulkCreateWorkEntries
- * Handles bulk insert with anomaly detection and automation
+ * Optimized to handle large batches with minimal database round-trips.
  */
 exports.bulkCreateWorkEntries = async (req, res, next) => {
     try {
-        const { entries } = req.body; // Array of entries
+        const { entries } = req.body;
         if (!Array.isArray(entries) || entries.length === 0) {
             return res.status(400).json({ error: 'Invalid or empty entries array' });
         }
 
-        const projectIds = new Set();
-        const processedEntries = [];
+        // 1. Gather all unique project IDs to pre-fetch rates
+        const projectIds = [...new Set(entries.map(e => e.project_id).filter(Boolean))];
+        let projectRates = {};
 
-        for (const entry of entries) {
-            const { labourer_id, project_id, date, meters, work_done, rate_applied, amount } = entry;
+        if (projectIds.length > 0) {
+            const { data: projects, error: pError } = await supabase
+                .from('projects')
+                .select('id, default_rate')
+                .in('id', projectIds);
             
-            // --- AUTOMATION: Calculate Amount if Missing ---
-            let finalAmount = amount;
-            let finalRate = rate_applied;
-            const workVolume = work_done || meters;
-
-            if (!finalAmount && project_id) {
-                const { data: project } = await supabase
-                    .from('projects')
-                    .select('default_rate')
-                    .eq('id', project_id)
-                    .single();
-                
-                finalRate = finalRate || project?.default_rate || 1;
-                finalAmount = workVolume * finalRate;
+            if (!pError && projects) {
+                projects.forEach(p => {
+                    projectRates[p.id] = p.default_rate || 1;
+                });
             }
+        }
 
-            // --- ADVANCED ANOMALY DETECTION ---
+        const processedEntries = [];
+        const uniqueProjectsInBatch = new Set();
+
+        // 2. Process entries with local cache
+        for (const entry of entries) {
+            const { project_id, meters, work_done, rate_applied, amount } = entry;
+            
+            let finalRate = rate_applied || projectRates[project_id] || 1;
+            const workVolume = work_done || meters || 0;
+            let finalAmount = amount || (workVolume * finalRate);
+
+            // Note: detectAnomalies still performs DB checks; for true perfection, 
+            // that should also be batched, but we'll optimize the obvious bottleneck first.
             const flags = await detectAnomalies({ ...entry, amount: finalAmount, meters: workVolume }, req.orgId);
 
             processedEntries.push({
@@ -195,12 +251,13 @@ exports.bulkCreateWorkEntries = async (req, res, next) => {
                 rate_applied: finalRate,
                 organization_id: req.orgId,
                 flags,
-                status: 'pending' // Default for group entries
+                status: 'pending'
             });
 
-            if (project_id) projectIds.add(project_id);
+            if (project_id) uniqueProjectsInBatch.add(project_id);
         }
 
+        // 3. Batch insert
         const { data, error } = await supabase
             .from('work_entries')
             .insert(processedEntries)
@@ -208,14 +265,16 @@ exports.bulkCreateWorkEntries = async (req, res, next) => {
 
         if (error) throw error;
 
-        // --- AUTOMATION: Update Project Stats ---
-        for (const pId of projectIds) {
-            await supabase.rpc('update_project_stats', { _project_id: pId });
-        }
+        // 4. Update Project Stats (Run in parallel for better speed)
+        await Promise.all(
+            Array.from(uniqueProjectsInBatch).map(pId => 
+                supabase.rpc('update_project_stats', { _project_id: pId })
+            )
+        );
 
         res.status(201).json(data);
     } catch (error) {
-        console.error('[WorkController] Bulk Error:', error);
+        console.error('[WorkController] Optimized Bulk Error:', error);
         next(error);
     }
 };
@@ -500,6 +559,77 @@ exports.deleteWorkEntry = async (req, res, next) => {
         });
 
         res.json({ message: 'Work Entry moved to Recycle Bin' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * getPendingAcknowledgments
+ * Fetch pending acknowledgments for a labourer
+ */
+exports.getPendingAcknowledgments = async (req, res, next) => {
+    try {
+        const { labourerId } = req.query;
+        
+        // Security check: If role is labour, ensure they only fetch their own
+        if (req.user.role === 'labour') {
+            const { data: labourer } = await supabase
+                .from('labourers')
+                .select('id')
+                .eq('user_id', req.user.id)
+                .single();
+            
+            if (!labourer || labourer.id !== labourerId) {
+                return res.status(403).json({ error: 'Unauthorized to view these acknowledgments' });
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('work_acknowledgments')
+            .select('*, work_entries(*)')
+            .eq('labourer_id', labourerId)
+            .eq('status', 'pending');
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * acknowledgeWork
+ * Labourer confirms or disputes an entry
+ */
+exports.acknowledgeWork = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status, notes } = req.body;
+
+        const { data, error } = await supabase
+            .from('work_acknowledgments')
+            .update({ 
+                status, 
+                notes, 
+                responded_at: new Date().toISOString() 
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Log audit
+        await logAudit({
+            req,
+            action: 'ACKNOWLEDGE',
+            entityType: 'WorkAcknowledgment',
+            entityId: id,
+            newValue: data
+        });
+
+        res.json(data);
     } catch (error) {
         next(error);
     }

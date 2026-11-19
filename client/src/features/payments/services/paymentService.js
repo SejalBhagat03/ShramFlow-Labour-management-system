@@ -111,29 +111,32 @@ export const paymentService = {
     },
 
     /**
-     * Bulk settle all approved entries for a labourer
-     * @param {string} labourerId
-     * @param {number} amount
-     * @param {string} method
+     * Intelligent Auto-Settlement for all approved work
+     * @param {Object} params { project_id, global, method }
      */
-    async bulkSettleEntries(labourerId, amount, method = 'cash') {
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
+    async autoSettle(params = { global: true, method: 'cash' }) {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
 
-        const response = await fetch(`${API_BASE}/api/payment/bulk-settle`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ labourer_id: labourerId, amount, method }),
-        });
+            const response = await fetch(`${API_BASE}/api/payment/auto-settle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(params),
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Bulk settlement failed');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || error.message || 'Auto-settlement failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            if (import.meta.env.DEV) console.error('Auto Settle Error:', error);
+            throw error;
         }
-
-        return await response.json();
-    },
+    }
 };

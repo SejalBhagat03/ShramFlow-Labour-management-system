@@ -25,6 +25,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase local state
+server/supabase/.temp/
+**/.supabase/
+
+# Local environment files
 .env
+.env.*
+!.env.example
 client/.env
 server/.env

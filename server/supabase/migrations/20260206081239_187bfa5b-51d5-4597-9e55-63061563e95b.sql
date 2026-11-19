@@ -45,7 +45,7 @@ CREATE TABLE public.work_claims (
 CREATE TABLE public.work_disputes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   work_claim_id UUID REFERENCES public.work_claims(id) ON DELETE SET NULL,
-  daily_work_id UUID REFERENCES public.daily_work_register(id) ON DELETE SET NULL,
+  daily_work_id UUID REFERENCES public.work_entries(id) ON DELETE SET NULL,
   labourer_id UUID NOT NULL REFERENCES public.labourers(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   claimed_meters NUMERIC NOT NULL DEFAULT 0,
@@ -63,7 +63,7 @@ CREATE TABLE public.work_disputes (
 -- Create work_acknowledgments table for labourer confirmations
 CREATE TABLE public.work_acknowledgments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  daily_work_id UUID NOT NULL REFERENCES public.daily_work_register(id) ON DELETE CASCADE,
+  daily_work_id UUID NOT NULL REFERENCES public.work_entries(id) ON DELETE CASCADE,
   labourer_id UUID NOT NULL REFERENCES public.labourers(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'disputed')),
   dispute_reason TEXT,
@@ -184,7 +184,7 @@ END;
 $$;
 
 CREATE TRIGGER trigger_create_acknowledgment
-AFTER INSERT ON public.daily_work_register
+AFTER INSERT ON public.work_entries
 FOR EACH ROW
 EXECUTE FUNCTION public.create_work_acknowledgment();
 
@@ -209,7 +209,7 @@ BEGIN
   
   -- Get supervisor entry
   SELECT id, meters INTO v_work_id, v_supervisor_meters
-  FROM daily_work_register
+  FROM work_entries
   WHERE labourer_id = NEW.labourer_id AND date = NEW.date;
   
   -- If both exist, check for mismatch
@@ -253,9 +253,9 @@ AFTER INSERT OR UPDATE ON public.work_claims
 FOR EACH ROW
 EXECUTE FUNCTION public.check_work_dispute();
 
--- Trigger on daily_work_register insert/update  
+-- Trigger on work_entries insert/update  
 CREATE TRIGGER trigger_check_dispute_on_work
-AFTER INSERT OR UPDATE ON public.daily_work_register
+AFTER INSERT OR UPDATE ON public.work_entries
 FOR EACH ROW
 EXECUTE FUNCTION public.check_work_dispute();
 

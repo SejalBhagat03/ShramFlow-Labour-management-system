@@ -13,4 +13,8 @@ router.patch('/:id/status', protect, authorize(['supervisor']), workController.u
 router.post('/smart-split', protect, authorize(['supervisor']), workController.getSmartSplit);
 router.delete('/:id', protect, authorize(['supervisor']), workController.deleteWorkEntry);
 
+// Acknowledgment Routes
+router.get('/acknowledgments', protect, authorize(['supervisor', 'labour']), workController.getPendingAcknowledgments);
+router.post('/acknowledgments/:id', protect, authorize(['labour']), workController.acknowledgeWork);
+
 module.exports = router;

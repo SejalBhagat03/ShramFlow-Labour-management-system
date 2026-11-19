@@ -56,87 +56,75 @@ const Reports = () => {
 
     return (
         <AppLayout>
-            <div className="space-y-3 md:space-y-6">
-                <div className="relative pt-6 lg:pt-8 pb-8 gradient-hero rounded-b-3xl border-white/10 border-b">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
-                                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">Business Intelligence</span>
-                            </div>
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground">{t("reports")}</h1>
-                            <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base font-medium">
-                                Analytics and productivity insights for your active projects
-                            </p>
+            <div className="space-y-8 animate-fade-in pb-12">
+                {/* 🎯 Premium Header */}
+                <div className="premium-header relative">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-700 text-[10px] font-black uppercase tracking-widest mb-3 border border-indigo-200/50 backdrop-blur-md">
+                            <TrendingUp className="h-3 w-3" />
+                            Business Intelligence
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Select value={dateRange} onValueChange={setDateRange}>
-                                <SelectTrigger className="w-32 sm:w-40 h-9 rounded-xl bg-background/50 border backdrop-blur-sm text-xs font-semibold">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="h-3.5 w-3.5 text-primary" />
-                                        <SelectValue />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl shadow-xl border-none">
-                                    <SelectItem value="week">This Week</SelectItem>
-                                    <SelectItem value="month">This Month</SelectItem>
-                                    <SelectItem value="quarter">This Quarter</SelectItem>
-                                    <SelectItem value="all">All Time</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button variant="outline" size="sm" className="h-9 px-3 rounded-xl bg-background/50 border backdrop-blur-sm text-xs font-semibold">
-                                <Download className="h-3.5 w-3.5 sm:mr-2" />
-                                <span className="hidden sm:inline">{t("exportCSV")}</span>
-                            </Button>
-                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
+                            System <span className="text-indigo-600">Analytics</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-3 flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-indigo-500" />
+                            Performance and productivity insights for your active projects.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 lg:gap-3">
+                        <Select value={dateRange} onValueChange={setDateRange}>
+                            <SelectTrigger className="w-32 lg:w-40 h-11 rounded-2xl bg-white border border-slate-200 shadow-sm text-[10px] font-black uppercase tracking-widest">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-3.5 w-3.5 text-indigo-600" />
+                                    <SelectValue />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl shadow-xl border-slate-100">
+                                <SelectItem value="week">This Week</SelectItem>
+                                <SelectItem value="month">This Month</SelectItem>
+                                <SelectItem value="quarter">This Quarter</SelectItem>
+                                <SelectItem value="all">All Time</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" className="h-11 px-4 lg:px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-[10px] uppercase tracking-widest shadow-sm active:scale-95 transition-all">
+                            <Download className="h-4 w-4 lg:mr-2 text-indigo-600" />
+                            <span className="hidden lg:inline">{t("exportCSV")}</span>
+                        </Button>
                     </div>
                 </div>
 
-                {/* Main Content Sections */}
-                <div className="space-y-6">
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
-                                <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary">
-                                    <Ruler className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                </div>
-                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Total Meters</span>
-                            </div>
-                            <p className="text-xl md:text-3xl font-black text-foreground tracking-tight">{totalMeters}m</p>
-                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Across last 7 days</p>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 animate-slide-up">
+                    <div className="glass-strong p-5 rounded-[2rem] shadow-soft border border-white/50">
+                        <div className="flex items-center gap-2 text-slate-400 mb-3">
+                            <Ruler className="h-4 w-4 text-emerald-500" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Total Meters</span>
                         </div>
-                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
-                                <div className="p-1.5 md:p-2 bg-amber-500/10 rounded-lg text-amber-600">
-                                    <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                </div>
-                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Total Hours</span>
-                            </div>
-                            <p className="text-xl md:text-3xl font-black text-foreground tracking-tight">{totalHours}h</p>
-                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Active logging hours</p>
-                        </div>
-                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
-                                <div className="p-1.5 md:p-2 bg-blue-500/10 rounded-lg text-blue-600">
-                                    <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                </div>
-                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Labourers</span>
-                            </div>
-                            <p className="text-xl md:text-3xl font-black text-foreground tracking-tight">{stats.activeLabourers}</p>
-                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">of {stats.totalLabourers} active</p>
-                        </div>
-                        <div className="bg-card rounded-2xl border p-4 md:p-6 shadow-sm hover-lift">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2 md:mb-3">
-                                <div className="p-1.5 md:p-2 bg-green-500/10 rounded-lg text-green-600">
-                                    <span className="text-xs md:text-sm">₹</span>
-                                </div>
-                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Earnings</span>
-                            </div>
-                            <p className="text-xl md:text-3xl font-black text-green-600 tracking-tight">₹{totalAmount.toLocaleString()}</p>
-                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Work value</p>
-                        </div>
+                        <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{totalMeters}m</p>
                     </div>
+                    <div className="glass-strong p-5 rounded-[2rem] shadow-soft border border-white/50">
+                        <div className="flex items-center gap-2 text-slate-400 mb-3">
+                            <TrendingUp className="h-4 w-4 text-amber-500" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Total Hours</span>
+                        </div>
+                        <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{totalHours}h</p>
+                    </div>
+                    <div className="glass-strong p-5 rounded-[2rem] shadow-soft border border-white/50">
+                        <div className="flex items-center gap-2 text-slate-400 mb-3">
+                            <Users className="h-4 w-4 text-blue-500" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Labourers</span>
+                        </div>
+                        <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{stats.activeLabourers}</p>
+                    </div>
+                    <div className="glass-strong p-5 rounded-[2rem] shadow-soft border border-white/50">
+                        <div className="flex items-center gap-2 text-slate-400 mb-3">
+                            <span className="text-emerald-500 font-black">₹</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Earnings</span>
+                        </div>
+                        <p className="text-2xl md:text-3xl font-black text-emerald-600 tracking-tight">₹{totalAmount.toLocaleString()}</p>
+                    </div>
+                </div>
 
                     {/* Charts Grid */}
                     <div className="grid lg:grid-cols-2 gap-6">
@@ -251,7 +239,6 @@ const Reports = () => {
                                 ))}
                             </div>
                         </div>
-                    </div>
                 </div>
             </div>
         </AppLayout>

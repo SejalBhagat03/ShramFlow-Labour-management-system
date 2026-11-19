@@ -39,7 +39,10 @@ const LabourDashboardV2 = React.lazy(() => import("./pages/LabourDashboardV2"));
 const Projects = React.lazy(() => import("./pages/Projects"));
 const ProjectDetails = React.lazy(() => import("./pages/ProjectDetails"));
 const CommandCenter = React.lazy(() => import("./pages/CommandCenter"));
+const UserManagement = React.lazy(() => import("./pages/UserManagement"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
+const OcrScanner = React.lazy(() => import("./pages/OcrScanner"));
+const Reconciliation = React.lazy(() => import("./pages/Reconciliation"));
 
 import { Chatbot } from "./features/ai/components/Chatbot";
 import { OfflineIndicator } from "./features/shared/components/OfflineIndicator";
@@ -160,13 +163,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     }
 
     // Role not allowed
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    if (allowedRoles && user && user.role !== 'superadmin' && !allowedRoles.includes(user.role)) {
         // If it's just a fallback role from metadata, wait before redirecting
         // This prevents the flickering on refresh when DB is slow
         if (user.isFallback) {
             return <LoadingScreen />;
         }
-        
         
         const redirectPath = user.role === "labour" ? "/labour-portal" : "/command-center";
         return <Navigate to={redirectPath} replace />;
@@ -308,6 +310,15 @@ const AppRoutes = () => {
             />
 
             <Route
+                path="/admin/users"
+                element={
+                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                        <UserManagement />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
                 path="/labour/:id/ledger"
                 element={
                     <ProtectedRoute allowedRoles={['supervisor', 'labour']}>
@@ -349,6 +360,24 @@ const AppRoutes = () => {
                 element={
                     <ProtectedRoute allowedRoles={["supervisor"]}>
                         <WorkDisputes />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/ocr-scanner"
+                element={
+                    <ProtectedRoute allowedRoles={["supervisor", "admin"]}>
+                        <OcrScanner />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/reconciliation"
+                element={
+                    <ProtectedRoute allowedRoles={["supervisor", "admin"]}>
+                        <Reconciliation />
                     </ProtectedRoute>
                 }
             />

@@ -9,12 +9,19 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
  */
 router.get('/', protect, authorize(['supervisor']), async (req, res, next) => {
     try {
-        const { data, error } = await supabase
+        const isSuperAdmin = req.user.user_metadata?.role === 'superadmin';
+        
+        let query = supabase
             .from('audit_logs')
             .select('*, profiles(full_name)')
-            .eq('organization_id', req.orgId)
             .order('created_at', { ascending: false })
             .limit(100);
+
+        if (!isSuperAdmin) {
+            query = query.eq('organization_id', req.orgId);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         res.json(data);

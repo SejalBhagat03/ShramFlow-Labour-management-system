@@ -50,11 +50,14 @@
     --sidebar-ring: 160 84% 39%;
 
     /* Premium SaaS tokens */
-    --gradient-page: linear-gradient(135deg, #E6F9F0 0%, #D1FAE5 100%);
+    --gradient-page: radial-gradient(circle at top left, #F0FFF4 0%, #FFFFFF 50%, #F0F9FF 100%);
+    --gradient-premium: linear-gradient(135deg, #059669 0%, #10B981 100%);
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
     --shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-glow: 0 0 20px -5px rgba(16, 185, 129, 0.3);
+    --shadow-glow-sm: 0 0 10px -2px rgba(16, 185, 129, 0.2);
   }
 
   .dark {
@@ -142,11 +145,20 @@
   }
 
   .gradient-primary {
-    @apply bg-primary;
+    background: var(--gradient-premium);
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(160 84% 39% / 0.05) 0%, hsl(160 84% 39% / 0.1) 100%);
+    background: radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+  }
+
+  .bg-mesh {
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(160, 84%, 39%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(220, 84%, 39%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(160, 84%, 39%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(220, 84%, 39%, 0.05) 0px, transparent 50%);
   }
 
   .shadow-card {
@@ -248,6 +260,22 @@
   .scrollbar-hide {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+  }
+
+  .mobile-container {
+    @apply px-4 md:px-8 max-w-7xl mx-auto;
+  }
+
+  .responsive-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+  }
+
+  .premium-header {
+    @apply flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8;
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 }
 

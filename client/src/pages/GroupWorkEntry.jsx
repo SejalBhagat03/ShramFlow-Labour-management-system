@@ -36,6 +36,9 @@ import { CheckCircle, ExternalLink, Sparkles, Target } from 'lucide-react';
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/api/supabase';
+import { cn } from '@/features/shared/utils/utils';
+import { Camera } from 'lucide-react';
 
 
 const taskKeys = [
@@ -79,6 +82,36 @@ const GroupWorkEntry = () => {
     const [savedWorkers, setSavedWorkers] = useState([]); 
     const [cloneLoading, setCloneLoading] = useState(false);
     const [yesterdayFound, setYesterdayFound] = useState(false);
+    const [projectStats, setProjectStats] = useState({ done: 0, target: 0 });
+
+    // Fetch Project Progress
+    useEffect(() => {
+        if (projectId) {
+            const fetchStats = async () => {
+                try {
+                    const { data } = await supabase
+                        .from('work_entries')
+                        .select('meters')
+                        .eq('project_id', projectId)
+                        .eq('is_deleted', false);
+                    
+                    const done = (data || []).reduce((sum, e) => sum + (e.meters || 0), 0);
+                    const target = activeProject?.total_work_target || 0;
+                    setProjectStats({ done, target });
+                } catch (err) {
+                    console.error("Stats fetch error:", err);
+                }
+            };
+            fetchStats();
+        }
+    }, [projectId, activeProject]);
+
+    // Quick Crew selection (most active workers)
+    const quickCrew = useMemo(() => {
+        return [...labourers]
+            .sort((a, b) => (b.total_work_done || 0) - (a.total_work_done || 0))
+            .slice(0, 5);
+    }, [labourers]);
 
     // Multi-select logic
     const toggleLabour = (labourId) => {
@@ -369,25 +402,44 @@ const GroupWorkEntry = () => {
                                         
                                         {/* Suggestion Bar */}
                                         {projectId && (
-                                            <motion.div 
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                className="mt-3 p-3 bg-primary/5 rounded-2xl border border-primary/20 flex items-center justify-between"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Smart Suggestion</span>
-                                                </div>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    className="h-8 text-xs font-bold text-primary hover:bg-primary/10"
-                                                    onClick={handleCloneYesterday}
-                                                    disabled={cloneLoading}
+                                            <div className="space-y-2 mt-3">
+                                                {projectStats.target > 0 && (
+                                                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Site Progress</span>
+                                                            <span className="text-[10px] font-bold text-slate-900">{Math.round((projectStats.done / projectStats.target) * 100)}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
+                                                                style={{ width: `${Math.min(100, (projectStats.done / projectStats.target) * 100)}%` }} 
+                                                            />
+                                                        </div>
+                                                        <p className="text-[8px] font-medium text-slate-400 mt-1.5">
+                                                            {projectStats.done.toLocaleString()}m completed of {projectStats.target.toLocaleString()}m target
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                <motion.div 
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    className="p-3 bg-blue-500/5 rounded-2xl border border-blue-200/50 flex items-center justify-between"
                                                 >
-                                                    {cloneLoading ? 'Analyzing...' : 'Clone Yesterday\'s List'}
-                                                </Button>
-                                            </motion.div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Smart Crew</span>
+                                                    </div>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="h-8 text-xs font-black text-blue-600 hover:bg-blue-500/10 uppercase tracking-tight"
+                                                        onClick={handleCloneYesterday}
+                                                        disabled={cloneLoading}
+                                                    >
+                                                        {cloneLoading ? 'Analyzing...' : 'Clone Yesterday'}
+                                                    </Button>
+                                                </motion.div>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="space-y-2">
@@ -448,7 +500,28 @@ const GroupWorkEntry = () => {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-0">
-                                    <ScrollArea className="h-[400px] px-6">
+                                    {quickCrew.length > 0 && (
+                                        <div className="px-6 py-4 border-b border-slate-50">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">Quick Add (Most Active)</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {quickCrew.map(l => (
+                                                    <Button
+                                                        key={l.id}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className={cn(
+                                                            "h-8 rounded-full text-[10px] font-bold border-slate-200",
+                                                            selectedLabours.includes(l.id) && "bg-emerald-50 border-emerald-200 text-emerald-600"
+                                                        )}
+                                                        onClick={() => toggleLabour(l.id)}
+                                                    >
+                                                        {l.name}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <ScrollArea className="h-[300px] px-6">
                                         <div className="space-y-2 py-4">
                                             {isLoadingLabourers ? (
                                                 <p>Loading labourers...</p>

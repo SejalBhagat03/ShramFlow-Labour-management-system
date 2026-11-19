@@ -4,15 +4,33 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const rateLimit = require('express-rate-limit');
 const { errorHandler } = require('./middlewares/errorMiddleware');
 const { protect } = require('./middlewares/authMiddleware');
+
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security Middlewares
+app.use(helmet()); // Sets various HTTP headers for security
+app.use(cors({
+    origin: process.env.FRONTEND_URL || '*', // Restrict to frontend URL in production
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-organization-id']
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Rate Limiting
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // limit each IP to 50 requests per windowMs
+    message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Routes
 const labourRoutes = require('./routes/labourRoutes');
@@ -23,6 +41,9 @@ const auditRoutes = require('./routes/auditRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const trashRoutes = require('./routes/trashRoutes');
 const commandCenterRoutes = require('./routes/commandCenterRoutes');
+const userRoutes = require('./routes/userRoutes');
+const ocrRoutes = require('./routes/ocrRoutes');
+const reconciliationRoutes = require('./routes/reconciliationRoutes');
 
 
 // --- GEMINI CONFIG (ULTRA STABLE) ---
@@ -42,7 +63,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Chat AI Route
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', aiLimiter, protect, async (req, res) => {
     try {
         const { messages, userRole, language } = req.body;
         const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -130,7 +151,7 @@ Help with: Adding Labour, Work, Payments, Fraud.`;
     }
 });
 
-app.post('/api/translate', async (req, res) => {
+app.post('/api/translate', aiLimiter, protect, async (req, res) => {
     try {
         const { text, targetLang } = req.body;
         if (!text) return res.json({ translatedText: '' });
@@ -173,6 +194,9 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/trash', trashRoutes);
 app.use('/api/command-center', commandCenterRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/ocr', ocrRoutes);
+app.use('/api/reconciliation', reconciliationRoutes);
 
 
 app.use(errorHandler);

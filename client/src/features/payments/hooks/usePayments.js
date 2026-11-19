@@ -92,11 +92,36 @@ export const usePayments = () => {
         .filter((p) => p.status === "pending")
         .reduce((sum, p) => sum + Number(p.amount), 0);
 
+    const autoSettle = useMutation({
+        mutationFn: async (params) => {
+            return await paymentService.autoSettle(params);
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["payments"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboard_stats"] });
+            queryClient.invalidateQueries({ queryKey: ["labour_balance"] });
+            
+            const { summary } = data;
+            toast({
+                title: "Auto-Settlement Complete",
+                description: `Successfully settled ₹${summary.total_amount_settled.toLocaleString()} for ${summary.labourers_settled} labourers. ${summary.labourers_flagged} flagged for manual review.`,
+            });
+        },
+        onError: (err) => {
+            toast({
+                title: "Settlement Error",
+                description: err.message,
+                variant: "destructive"
+            });
+        }
+    });
+
     return {
         payments,
         isLoading,
         error,
         createManualPayment,
+        autoSettle,
         totalPaid,
         totalPending,
     };

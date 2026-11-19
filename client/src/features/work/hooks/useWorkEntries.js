@@ -4,25 +4,24 @@ import { useToast } from '@/features/shared/hooks/use-toast';
 import { workService } from '@/features/work/services/workService';
 import { WorkEntry as WorkEntryModel } from '@/features/work/models/WorkEntry';
 
-export const useWorkEntries = (labourerId) => {
+export const useWorkEntries = (labourerId, { page = 1, limit = 10, status, search = '' } = {}) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    const { data: workEntries = [], isLoading, error } = useQuery({
-        queryKey: ['work_entries', user?.id, labourerId, user?.organization_id],
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['work_entries', user?.id, labourerId, user?.organization_id, page, limit, status, search],
         queryFn: async () => {
-            if (!user) return [];
-            // If used in a context that requires a labourerId, we could add a guard.
-            // But supervisors might want to see all if no ID is provided.
-            // The user requested: "not call the API when labourerId is undefined"
-            // Let's assume this means when intended for a specific labourer.
-            if (labourerId === 'undefined') return [];
+            if (!user) return { data: [], pagination: {} };
+            if (labourerId === 'undefined') return { data: [], pagination: {} };
 
-            return await workService.getWorkEntries(labourerId, user?.organization_id);
+            return await workService.getWorkEntries(labourerId, user?.organization_id, page, limit, status, search);
         },
         enabled: !!user
     });
+
+    const workEntries = data?.data || [];
+    const pagination = data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 };
 
     const createWorkEntry = useMutation({
         mutationFn: async (formData) => {
@@ -132,6 +131,7 @@ export const useWorkEntries = (labourerId) => {
 
     return {
         workEntries,
+        pagination,
         isLoading,
         error,
         createWorkEntry,
